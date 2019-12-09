@@ -4,7 +4,9 @@ let
 
   inherit (nixpkgs) pkgs;
 
-  f = { mkDerivation, base, gi-gtk, stdenv, text }:
+  f = { mkDerivation, base, containers, dbus, gi-gtk, gi-gtk-hs
+      , stdenv, text
+      }:
       mkDerivation {
         pname = "musicSorter";
         version = "0.1.0.0";
@@ -12,10 +14,11 @@ let
         isLibrary = true;
         isExecutable = true;
         enableSeparateDataOutput = true;
-        libraryHaskellDepends = [ base gi-gtk text ];
+        libraryHaskellDepends = [
+          base containers dbus gi-gtk gi-gtk-hs text
+        ];
         executableHaskellDepends = [ base ];
-        license = "unknown";
-        hydraPlatforms = stdenv.lib.platforms.none;
+        license = stdenv.lib.licenses.gpl3;
       };
 
   haskellPackages = if compiler == "default"
