@@ -4,8 +4,8 @@ let
 
   inherit (nixpkgs) pkgs;
 
-  f = { mkDerivation, base, containers, dbus, gi-gtk, gi-gtk-hs
-      , stdenv, text
+  f = { mkDerivation, async, base, containers, dbus, gi-gtk
+      , gi-gtk-hs, stdenv, stm, text
       }:
       mkDerivation {
         pname = "musicSorter";
@@ -15,7 +15,7 @@ let
         isExecutable = true;
         enableSeparateDataOutput = true;
         libraryHaskellDepends = [
-          base containers dbus gi-gtk gi-gtk-hs text
+          async base containers dbus gi-gtk gi-gtk-hs stm text
         ];
         executableHaskellDepends = [ base ];
         license = stdenv.lib.licenses.gpl3;

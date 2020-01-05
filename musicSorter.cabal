@@ -27,7 +27,9 @@ library
                        dbus,
                        gi-gtk,
                        gi-gtk-hs,
-                       text
+                       text,
+                       stm,
+                       async
   exposed-modules:     MusicSorter.UI,
                        MusicSorter.RealMain
                        MusicSorter.MPRIS
