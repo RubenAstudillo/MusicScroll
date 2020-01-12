@@ -28,12 +28,24 @@ library
                        gi-gtk,
                        gi-gtk-hs,
                        text,
+                       bytestring,
                        stm,
-                       async
+                       async,
+                       req,
+                       tagsoup
   exposed-modules:     MusicSorter.UI,
                        MusicSorter.RealMain
                        MusicSorter.MPRIS
+                       MusicSorter.AZLyrics
+                       MusicSorter.TagParsing
   other-modules:       Paths_musicSorter
+
+-- test-suite playground
+--     type:       exitcode-stdio-1.0
+--     main-is:    test-foo.hs
+--     -- NOTE: no constraints on 'foo-internal' as same-package
+--     --       dependencies implicitly refer to the same package instance
+--     build-depends: foo-internal, base
 
 executable music-sorter
   main-is:             Main.hs

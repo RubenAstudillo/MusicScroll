@@ -1,5 +1,5 @@
 {-# language NamedFieldPuns, RecordWildCards, OverloadedStrings #-}
-module MusicSorter.RealMain (guiThread) where
+module MusicSorter.RealMain (realMain, guiThread) where
 
 import MusicSorter.UI
 import qualified GI.Gtk as Gtk
@@ -16,5 +16,6 @@ guiThread = do
 
 
 realMain :: IO ()
-realMain = guiThread
+realMain = print "hello"
+-- realMain = guiThread
 
