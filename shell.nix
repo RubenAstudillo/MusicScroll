@@ -29,7 +29,7 @@ let
 
   variant = if doBenchmark then pkgs.haskell.lib.doBenchmark else pkgs.lib.id;
 
-  drv = variant (haskellPackages.callPackage f {});
+  drv = variant (haskellPackages.callPackage f { gtk3 = nixpkgs.gtk3; });
 
 in
 
