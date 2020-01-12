@@ -24,7 +24,7 @@ lyricsPipeline (TrackInfo {tArtist, tTitle}) =
   do let songUrl = url tArtist tTitle
      resp <- getPage songUrl
      if responseStatusCode resp /= 200
-       then return []
+       then return [ "Fallo AZLyrics" ]
        else
          do let body = decodeUtf8 (responseBody resp) -- can throw, decode header?
             return (extractLyricsFromPage body)
