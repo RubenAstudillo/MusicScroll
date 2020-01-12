@@ -1,21 +1,22 @@
-{-# language NamedFieldPuns, RecordWildCards, OverloadedStrings #-}
-module MusicSorter.RealMain (realMain, guiThread) where
+{-# language OverloadedStrings #-}
+module MusicSorter.RealMain (realMain) where
 
-import MusicSorter.UI
-import qualified GI.Gtk as Gtk
-import qualified Control.Concurrent as Conc
-
-guiThread :: IO ()
-guiThread = do
-  _ <- Gtk.init Nothing
-  AppContext {..} <- getGtkScene
-  Gtk.labelSetText titleLabel "Hola Mundo"
-  Gtk.widgetShowAll mainWindow
-  Gtk.onWidgetDestroy mainWindow Gtk.mainQuit
-  Gtk.main
-
+import           Control.Concurrent.Async (Async)
+import qualified Control.Concurrent.Async as A
+import           Control.Concurrent.STM (STM, atomically)
+import qualified Control.Concurrent.STM.TBQueue as TB
+import           Control.Concurrent.STM.TChan (TChan)
+import qualified Control.Concurrent.STM.TMVar as TM
+import           MusicSorter.AZLyrics
+import           MusicSorter.MPRIS
+import           MusicSorter.UI
 
 realMain :: IO ()
-realMain = print "hello"
--- realMain = guiThread
-
+realMain =
+  do dbusSongChan <- atomically (TB.newTBQueue 5)
+     lyricsChan   <- atomically (TB.newTBQueue 5)
+     userInterruptMVar   <- atomically TM.newEmptyTMVar
+     A.withAsync (setupUIThread lyricsChan) $ \setupUIAsync ->
+       A.withAsync (lyricsThread dbusSongChan lyricsChan) $ \lyricsA ->
+         A.withAsync (dbusThread userInterruptMVar dbusSongChan) $ \dbusA ->
+           A.wait setupUIAsync *> A.wait lyricsA *> A.wait dbusA *> pure ()

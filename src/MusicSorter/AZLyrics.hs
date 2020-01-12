@@ -2,7 +2,7 @@
 module MusicSorter.AZLyrics (lyricsThread) where
 
 import           Control.Concurrent.STM (STM, atomically)
-import           Control.Concurrent.STM.TChan (TChan, readTChan, writeTChan)
+import           Control.Concurrent.STM.TBQueue (TBQueue, readTBQueue, writeTBQueue)
 import           Control.Monad (forever)
 import           Data.ByteString (ByteString)
 import qualified Data.Char as C
@@ -13,10 +13,11 @@ import           MusicSorter.MPRIS (TrackInfo(..))
 import           MusicSorter.TagParsing
 import           Network.HTTP.Req
 
-lyricsThread :: TChan TrackInfo -> TChan [Text] -> IO a
+lyricsThread :: TBQueue TrackInfo -> TBQueue (TrackInfo, [Text]) -> IO a
 lyricsThread input output = forever $
-  atomically (readTChan input) >>= lyricsPipeline
-  >>= atomically . writeTChan output
+  do trackinfo <- atomically (readTBQueue input)
+     lyrics <- lyricsPipeline trackinfo
+     atomically $ writeTBQueue output (trackinfo, lyrics)
 
 lyricsPipeline :: TrackInfo -> IO [Text]
 lyricsPipeline (TrackInfo {tArtist, tTitle}) =

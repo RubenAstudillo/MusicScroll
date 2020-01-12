@@ -5,7 +5,7 @@ let
   inherit (nixpkgs) pkgs;
 
   f = { mkDerivation, async, base, bytestring, containers, dbus
-      , gi-gtk, gi-gtk-hs, req, stdenv, stm, tagsoup, text
+      , gi-gtk, gi-gtk-hs, gtk3, req, stdenv, stm, tagsoup, text
       }:
       mkDerivation {
         pname = "musicSorter";
@@ -19,6 +19,7 @@ let
           tagsoup text
         ];
         executableHaskellDepends = [ base ];
+        executablePkgconfigDepends = [ gtk3 ];
         license = stdenv.lib.licenses.gpl3;
       };
 
