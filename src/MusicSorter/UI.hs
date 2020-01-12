@@ -60,13 +60,14 @@ uiThread ctxMVar = do
 ---
 uiUpdateThread :: TBQueue (TrackInfo, [Text]) -> TMVar AppContext -> IO a
 uiUpdateThread input ctxMVar = do
-  appCtx <- atomically (takeTMVar ctxMVar)
+  AppContext {..} <- atomically (takeTMVar ctxMVar)
   forever $
       do (track, lyrics) <- atomically (readTBQueue input)
-         let !lyricsViewRef  = lyricsTextView appCtx
-             !singleLyrics  = T.unlines lyrics
+         let !singleLyrics  = T.unlines lyrics
              !bytesToUpdate = fromIntegral $ T.length singleLyrics
          postGUISync $ do
-           lyricsBuffer <- Gtk.textViewGetBuffer lyricsViewRef
+           Gtk.labelSetText titleLabel (tTitle track)
+           Gtk.labelSetText artistLabel (tArtist track)
+           lyricsBuffer <- Gtk.textViewGetBuffer lyricsTextView
            Gtk.textBufferSetText lyricsBuffer singleLyrics bytesToUpdate
 
