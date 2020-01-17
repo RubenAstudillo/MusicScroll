@@ -2,18 +2,19 @@
 module MusicSorter.AZLyrics (lyricsThread) where
 
 import           Control.Concurrent.STM (atomically)
-import           Control.Concurrent.STM.TBQueue (TBQueue, readTBQueue, writeTBQueue)
+import           Control.Concurrent.STM.TBQueue (TBQueue, readTBQueue,
+                                                 writeTBQueue)
 import           Control.Monad (forever)
 import           Data.Text (Text)
 import           Data.Text as T hiding (filter, tail, map)
 import           Data.Text.Encoding (decodeUtf8)
-import           MusicSorter.TrackInfo (TrackInfo(..))
+import           MusicSorter.TrackInfo (TrackInfo(..), cleanTrack)
 import           MusicSorter.TagParsing
 import           Network.HTTP.Req
 
 lyricsThread :: TBQueue TrackInfo -> TBQueue (TrackInfo, [Text]) -> IO a
 lyricsThread input output = forever $
-  do trackinfo <- atomically (readTBQueue input)
+  do trackinfo <- cleanTrack <$> atomically (readTBQueue input)
      lyrics <- lyricsPipeline trackinfo
      atomically $ writeTBQueue output (trackinfo, lyrics)
 

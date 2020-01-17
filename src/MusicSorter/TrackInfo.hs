@@ -3,6 +3,7 @@ module MusicSorter.TrackInfo
   ( tryGetInfo
   , TrackInfo(..)
   , TrackInfoError(..)
+  , cleanTrack
   ) where
 
 import           Control.Monad (join)
@@ -14,6 +15,9 @@ import           Data.Int (Int64)
 import           Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import           Data.Text (Text)
+import qualified Data.Text as T
+import           Data.Char (isAlpha)
+import           Data.Bifunctor
 
 import           MusicSorter.DBusNames
 
@@ -50,3 +54,18 @@ obtainTrackInfo metadata pos =
               <*> lookup "xesam:artist" <*> lookup "mpris:length"
               <*> pure pos
   in maybe (Left NoMetadata) Right track
+
+
+
+cleanTrack :: TrackInfo -> TrackInfo
+cleanTrack t@(TrackInfo {tTitle}) = t { tTitle = cleanTitle tTitle }
+
+-- Remove .mp3 and numbers from the title.
+cleanTitle :: Text -> Text
+cleanTitle title0 =
+  let (title1, format) = first T.init $ T.breakOnEnd "." title0
+      title2 = if elem format musicFormats then title1 else title0
+  in T.dropWhile (not . isAlpha) title2
+
+musicFormats :: [Text]
+musicFormats = ["mp3", "flac", "ogg", "wav", "acc", "opus", "webm"]
