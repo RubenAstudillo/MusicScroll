@@ -17,6 +17,15 @@ import           Data.Text (Text)
 
 import           MusicSorter.DBusNames
 
+data TrackInfo = TrackInfo
+  { tTitle  :: Text
+  , tArtist :: Text
+  , tLength :: Double
+  , tPos    :: Int64
+  } deriving (Eq, Show) -- TODO: better eq instance
+
+data TrackInfoError = NoMusicClient MethodError | NoMetadata
+
 -- An exception here means that either there is not a music player
 -- running or what it is running it's not a song. Either way we should
 -- wait for a change on the dbus connection to try again.
@@ -32,15 +41,6 @@ tryGetInfo client = do
                     & fmap (first NoMusicClient)
     return . join $
       obtainTrackInfo <$> metadata <*> position
-
-data TrackInfo = TrackInfo
-  { tTitle  :: Text
-  , tArtist :: Text
-  , tLength :: Double
-  , tPos    :: Int64
-  } deriving (Eq, Show) -- TODO: better eq instance
-
-data TrackInfoError = NoMusicClient MethodError | NoMetadata
 
 obtainTrackInfo :: Map Text Variant -> Int64
                 -> Either TrackInfoError TrackInfo

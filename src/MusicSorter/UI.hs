@@ -1,9 +1,8 @@
 {-# language NamedFieldPuns, RecordWildCards, OverloadedStrings,
-  BangPatterns #-}
+             BangPatterns #-}
 module MusicSorter.UI (setupUIThread) where
 
-import           Control.Concurrent.Async (withAsyncBound)
-import qualified Control.Concurrent.Async as A
+import           Control.Concurrent.Async (withAsyncBound, waitAnyCancel, withAsync)
 import           Control.Concurrent.STM (atomically)
 import           Control.Concurrent.STM.TBQueue (TBQueue, readTBQueue)
 import           Control.Concurrent.STM.TMVar (TMVar, newEmptyTMVar,
@@ -12,6 +11,7 @@ import           Control.Monad (forever)
 import           Data.Functor (void)
 import           Data.GI.Gtk.Threading (setCurrentThreadAsGUIThread,
                                         postGUISync)
+import           Control.Exception (throwIO, AsyncException(UserInterrupt))
 import           Data.Maybe (fromJust)
 import           Data.Text (Text)
 import           Data.Text as T
@@ -45,8 +45,8 @@ setupUIThread :: TBQueue (TrackInfo, [Text]) -> IO ()
 setupUIThread trackUpdates =
   do appCtxMVar <- atomically newEmptyTMVar
      withAsyncBound (uiThread appCtxMVar) $ \a1 ->
-       A.withAsync (uiUpdateThread trackUpdates appCtxMVar) $ \a2 ->
-         void $ A.wait a1 <* A.wait a2
+       withAsync (uiUpdateThread trackUpdates appCtxMVar) $ \a2 ->
+         void (waitAnyCancel [a1, a2]) >> throwIO UserInterrupt
 
 uiThread :: TMVar AppContext -> IO ()
 uiThread ctxMVar = do
@@ -54,9 +54,9 @@ uiThread ctxMVar = do
   _ <- Gtk.init Nothing
   appCtx@(AppContext {..}) <- getGtkScene
   atomically (putTMVar ctxMVar appCtx)
-  Gtk.labelSetText titleLabel "Hola Mundo"
+  Gtk.labelSetText titleLabel "MusicSorter"
   Gtk.widgetShowAll mainWindow
-  _ <- Gtk.onWidgetDestroy mainWindow (Gtk.mainQuit >> fail "no")
+  _ <- Gtk.onWidgetDestroy mainWindow Gtk.mainQuit
   Gtk.main
 
 ---

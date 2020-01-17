@@ -1,10 +1,11 @@
 {-# language OverloadedStrings #-}
 module MusicSorter.RealMain (realMain) where
 
-import Control.Concurrent.Async (withAsync, wait)
+import Control.Concurrent.Async (withAsync, waitAnyCancel)
 import Control.Concurrent.STM (atomically)
 import Control.Concurrent.STM.TBQueue (newTBQueue)
 import Numeric.Natural (Natural)
+import Data.Functor (void)
 
 import MusicSorter.AZLyrics
 import MusicSorter.MPRIS
@@ -17,7 +18,7 @@ realMain =
      withAsync (setupUIThread lyricsChan) $ \setupUIA ->
        withAsync (lyricsThread dbusSongChan lyricsChan) $ \lyricsA ->
          withAsync (dbusThread dbusSongChan) $ \dbusA ->
-           wait setupUIA *> wait lyricsA *> wait dbusA *> pure ()
+           void $ waitAnyCancel [setupUIA, lyricsA, dbusA]
 
 sizeOfQueue :: Natural
 sizeOfQueue = 5

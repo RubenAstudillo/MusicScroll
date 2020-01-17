@@ -45,12 +45,28 @@
               </packing>
             </child>
             <child>
-              <object class="GtkTextView" id="lyricsTextView">
+              <object class="GtkScrolledWindow">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
+                <property name="margin_left">3</property>
+                <property name="margin_right">6</property>
                 <property name="hexpand">True</property>
                 <property name="vexpand">True</property>
-                <property name="buffer">textbuffer1</property>
+                <property name="shadow_type">in</property>
+                <property name="propagate_natural_width">True</property>
+                <property name="propagate_natural_height">True</property>
+                <child>
+                  <object class="GtkTextView" id="lyricsTextView">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="hexpand">True</property>
+                    <property name="vexpand">True</property>
+                    <property name="vscroll_policy">natural</property>
+                    <property name="editable">False</property>
+                    <property name="justification">center</property>
+                    <property name="buffer">textbuffer1</property>
+                  </object>
+                </child>
               </object>
               <packing>
                 <property name="left_attach">0</property>
