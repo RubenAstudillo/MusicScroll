@@ -1,4 +1,4 @@
-* MusicScroll
+# MusicScroll
 
 ![Basic program for basic needs](https://i.imgur.com/BEa6RzJ.png)
 
