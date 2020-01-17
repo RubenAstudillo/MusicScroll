@@ -1,11 +1,9 @@
 {-# language OverloadedStrings, DataKinds, NamedFieldPuns #-}
 module MusicSorter.AZLyrics (lyricsThread) where
 
-import           Control.Concurrent.STM (STM, atomically)
+import           Control.Concurrent.STM (atomically)
 import           Control.Concurrent.STM.TBQueue (TBQueue, readTBQueue, writeTBQueue)
 import           Control.Monad (forever)
-import           Data.ByteString (ByteString)
-import qualified Data.Char as C
 import           Data.Text (Text)
 import           Data.Text as T hiding (filter, tail, map)
 import           Data.Text.Encoding (decodeUtf8)
@@ -29,11 +27,11 @@ lyricsPipeline (TrackInfo {tArtist, tTitle}) =
          do let body = decodeUtf8 (responseBody resp) -- can throw, decode header?
             return (extractLyricsFromPage body)
 
-getPage :: Url Https -> IO BsResponse
+getPage :: Url 'Https -> IO BsResponse
 getPage url = runReq defaultHttpConfig $
   req GET url NoReqBody bsResponse mempty
 
-url :: Text -> Text -> Url Https
+url :: Text -> Text -> Url 'Https
 url artist song =
   let base :: Url Https
       base = https "www.azlyrics.com"

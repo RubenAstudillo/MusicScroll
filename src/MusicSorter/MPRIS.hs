@@ -7,7 +7,8 @@ import           Control.Concurrent.MVar (MVar)
 import           Control.Concurrent.STM (atomically)
 import           Control.Concurrent.STM.TBQueue (TBQueue)
 import qualified Control.Concurrent.STM.TBQueue as TBQueue
-import           Control.Concurrent.STM.TMVar (TMVar, takeTMVar)
+import           Control.Concurrent.STM.TMVar (TMVar, takeTMVar,
+                                               newEmptyTMVar, putTMVar)
 import           Control.Exception (Exception)
 import qualified Control.Exception as Exc
 import           Control.Monad (when, join)
@@ -35,17 +36,20 @@ mediaObject = "/org/mpris/MediaPlayer2"
 mediaInterface :: InterfaceName
 mediaInterface = "org.mpris.MediaPlayer2.Player"
 
-dbusThread :: TMVar () -> TBQueue TrackInfo -> IO a
-dbusThread trigger outChan =
+dbusThread :: TBQueue TrackInfo -> IO a
+dbusThread outChan =
   Exc.bracket connectSession disconnect (flip go Nothing)
   where
     go :: Client -> Maybe TrackInfo -> IO a
     go client lastTrack =
-        do track <- tryGetInfo client -- [1]
-           writeIfNotRepeated outChan lastTrack track
-           let userInterrupt = void . atomically $ takeTMVar trigger
-           race_ (songDelay track) userInterrupt
-           go client (pure track)
+        do mtrack <- tryGetInfo client
+           case mtrack of
+             Right track ->
+                 do writeIfNotRepeated outChan lastTrack track
+                    waitForChange client
+                    go client (pure track)
+
+             Left _ -> waitForChange client >> go client lastTrack
 
 writeIfNotRepeated :: TBQueue TrackInfo -> Maybe TrackInfo -> TrackInfo
                    -> IO ()
@@ -60,7 +64,7 @@ songDelay (TrackInfo {tLength}) = threadDelay $ floor tLength
 -- An exception here means that either there is not a music player
 -- running or what it is running it's not a song. Either way we should
 -- wait for a change on the dbus connection to try again.
-tryGetInfo :: Client -> IO TrackInfo
+tryGetInfo :: Client -> IO (Either TrackInfoError TrackInfo)
 tryGetInfo client = do
     metadata <- getPropertyValue client
                     (methodCall mediaObject mediaInterface "Metadata") {
@@ -70,7 +74,8 @@ tryGetInfo client = do
                     (methodCall mediaObject mediaInterface "Position") {
                     methodCallDestination = Just smplayerBus }
                     & fmap (first NoMusicClient)
-    either Exc.throwIO return . join $ obtainTrackInfo <$> metadata <*> position
+    return . join $
+      obtainTrackInfo <$> metadata <*> position
 
 data TrackInfo = TrackInfo
   { tTitle  :: Text
@@ -92,3 +97,19 @@ obtainTrackInfo metadata pos =
               <*> lookup "xesam:artist" <*> lookup "mpris:length"
               <*> pure pos
   in maybe (Left NoMetadata) Right track
+
+
+waitForChange :: Client -> IO ()
+waitForChange client =
+  do trigger <- atomically newEmptyTMVar
+     disarmHandler <- gotSignalOfChange client trigger
+     _ <- atomically $ takeTMVar trigger
+     removeMatch client disarmHandler
+
+gotSignalOfChange :: Client -> TMVar () -> IO SignalHandler
+gotSignalOfChange client trigger =
+  let rule = matchAny
+        { matchPath = pure mediaObject
+        , matchInterface = pure "org.freedesktop.DBus.Properties"
+        , matchMember = pure "PropertiesChanged" }
+  in addMatch client rule (\_ -> atomically ( putTMVar trigger () ))
