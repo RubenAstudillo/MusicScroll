@@ -2,23 +2,24 @@
              BangPatterns #-}
 module MusicSorter.UI (setupUIThread) where
 
-import           Control.Concurrent.Async (withAsyncBound, waitAnyCancel, withAsync)
+import           Control.Concurrent.Async
+                     (withAsyncBound, waitAnyCancel, withAsync)
 import           Control.Concurrent.STM (atomically)
 import           Control.Concurrent.STM.TBQueue (TBQueue, readTBQueue)
-import           Control.Concurrent.STM.TMVar (TMVar, newEmptyTMVar,
-                                               takeTMVar, putTMVar)
+import           Control.Concurrent.STM.TMVar
+                     (TMVar, newEmptyTMVar, takeTMVar, putTMVar)
+import           Control.Exception (throwIO, AsyncException(UserInterrupt))
 import           Control.Monad (forever)
 import           Data.Functor (void)
-import           Data.GI.Gtk.Threading (setCurrentThreadAsGUIThread,
-                                        postGUISync)
-import           Control.Exception (throwIO, AsyncException(UserInterrupt))
+import           Data.GI.Gtk.Threading
+                     (setCurrentThreadAsGUIThread, postGUISync)
 import           Data.Maybe (fromJust)
 import           Data.Text (Text)
 import           Data.Text as T
 import qualified GI.Gtk as Gtk
 import           MusicSorter.TrackInfo (TrackInfo(..))
 
-import Paths_musicSorter
+import           Paths_musicSorter
 
 data AppContext = AppContext
   { mainWindow     :: Gtk.Window
