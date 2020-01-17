@@ -1,5 +1,5 @@
 {-# language OverloadedStrings #-}
-module MusicSorter.RealMain (realMain) where
+module MusicScroll.RealMain (realMain) where
 
 import Control.Concurrent.Async (withAsync, waitAnyCancel)
 import Control.Concurrent.STM (atomically)
@@ -7,9 +7,9 @@ import Control.Concurrent.STM.TBQueue (newTBQueue)
 import Numeric.Natural (Natural)
 import Data.Functor (void)
 
-import MusicSorter.AZLyrics
-import MusicSorter.MPRIS
-import MusicSorter.UI
+import MusicScroll.AZLyrics
+import MusicScroll.MPRIS
+import MusicScroll.UI
 
 realMain :: IO ()
 realMain =

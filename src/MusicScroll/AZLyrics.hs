@@ -1,5 +1,5 @@
 {-# language OverloadedStrings, DataKinds, NamedFieldPuns #-}
-module MusicSorter.AZLyrics (lyricsThread) where
+module MusicScroll.AZLyrics (lyricsThread) where
 
 import           Control.Concurrent.STM (atomically)
 import           Control.Concurrent.STM.TBQueue (TBQueue, readTBQueue,
@@ -8,8 +8,8 @@ import           Control.Monad (forever)
 import           Data.Text (Text)
 import           Data.Text as T hiding (filter, tail, map)
 import           Data.Text.Encoding (decodeUtf8)
-import           MusicSorter.TrackInfo (TrackInfo(..), cleanTrack)
-import           MusicSorter.TagParsing
+import           MusicScroll.TrackInfo (TrackInfo(..), cleanTrack)
+import           MusicScroll.TagParsing
 import           Network.HTTP.Req
 
 lyricsThread :: TBQueue TrackInfo -> TBQueue (TrackInfo, [Text]) -> IO a

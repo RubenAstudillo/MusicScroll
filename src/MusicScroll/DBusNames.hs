@@ -1,5 +1,5 @@
 {-# language OverloadedStrings #-}
-module MusicSorter.DBusNames where
+module MusicScroll.DBusNames where
 
 import DBus (BusName, ObjectPath, InterfaceName)
 

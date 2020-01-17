@@ -8,7 +8,7 @@ let
       , gi-gtk, gi-gtk-hs, gtk3, req, stdenv, stm, tagsoup, text
       }:
       mkDerivation {
-        pname = "musicSorter";
+        pname = "musicScroll";
         version = "0.1.0.0";
         src = ./.;
         isLibrary = true;

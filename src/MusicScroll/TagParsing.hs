@@ -1,5 +1,5 @@
 {-# language OverloadedStrings #-}
-module MusicSorter.TagParsing (extractLyricsFromPage) where
+module MusicScroll.TagParsing (extractLyricsFromPage) where
 
 import qualified Data.Char as C
 import           Data.Text (Text)

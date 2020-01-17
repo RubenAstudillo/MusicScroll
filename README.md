@@ -1,4 +1,4 @@
-* MusicSorter
+* MusicScroll
 
 ![Basic program for basic needs](https://i.imgur.com/BEa6RzJ.png)
 
@@ -7,7 +7,7 @@ I am currently hearing. I got basic needs, I download songs with good
 metadata and use SMPlayer to open the playlists. It would be nice if
 somehow I could get a basic windows with the lyrics of the song.
 
-MusicSorter does this. When you run the command `music-sorter` a window
+MusicScroll does this. When you run the command `music-scroll` a window
 is opened with the lyrics of the song your are playing on SMPlayer and
 each change of song will retrieve new lyrics without your intervention.
 

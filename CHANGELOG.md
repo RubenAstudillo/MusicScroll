@@ -1,4 +1,4 @@
-# Revision history for music-sorter
+# Revision history for music-scroll
 
 ## 0.1.0.0 -- YYYY-mm-dd
 

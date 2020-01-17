@@ -1,5 +1,5 @@
 {-# language OverloadedStrings, ScopedTypeVariables, NamedFieldPuns #-}
-module MusicSorter.TrackInfo
+module MusicScroll.TrackInfo
   ( tryGetInfo
   , TrackInfo(..)
   , TrackInfoError(..)
@@ -19,7 +19,7 @@ import qualified Data.Text as T
 import           Data.Char (isAlpha)
 import           Data.Bifunctor
 
-import           MusicSorter.DBusNames
+import           MusicScroll.DBusNames
 
 data TrackInfo = TrackInfo
   { tTitle  :: Text

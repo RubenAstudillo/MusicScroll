@@ -1,5 +1,5 @@
 {-# language OverloadedStrings, ScopedTypeVariables, NamedFieldPuns #-}
-module MusicSorter.MPRIS where
+module MusicScroll.MPRIS where
 
 import           Control.Concurrent.STM (atomically)
 import           Control.Concurrent.STM.TBQueue (TBQueue)
@@ -10,8 +10,8 @@ import qualified Control.Exception as Exc
 import           Control.Monad (when)
 import           DBus.Client
 
-import           MusicSorter.TrackInfo
-import           MusicSorter.DBusNames
+import           MusicScroll.TrackInfo
+import           MusicScroll.DBusNames
 
 dbusThread :: TBQueue TrackInfo -> IO a
 dbusThread outChan =

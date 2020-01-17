@@ -1,6 +1,6 @@
 {-# language NamedFieldPuns, RecordWildCards, OverloadedStrings,
              BangPatterns #-}
-module MusicSorter.UI (setupUIThread) where
+module MusicScroll.UI (setupUIThread) where
 
 import           Control.Concurrent.Async
                      (withAsyncBound, waitAnyCancel, withAsync)
@@ -17,9 +17,9 @@ import           Data.Maybe (fromJust)
 import           Data.Text (Text)
 import           Data.Text as T
 import qualified GI.Gtk as Gtk
-import           MusicSorter.TrackInfo (TrackInfo(..))
+import           MusicScroll.TrackInfo (TrackInfo(..))
 
-import           Paths_musicSorter
+import           Paths_musicScroll
 
 data AppContext = AppContext
   { mainWindow     :: Gtk.Window
@@ -55,7 +55,7 @@ uiThread ctxMVar = do
   _ <- Gtk.init Nothing
   appCtx@(AppContext {..}) <- getGtkScene
   atomically (putTMVar ctxMVar appCtx)
-  Gtk.labelSetText titleLabel "MusicSorter"
+  Gtk.labelSetText titleLabel "MusicScroll"
   Gtk.widgetShowAll mainWindow
   _ <- Gtk.onWidgetDestroy mainWindow Gtk.mainQuit
   Gtk.main
