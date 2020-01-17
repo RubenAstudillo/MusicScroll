@@ -7,7 +7,7 @@ import           Control.Monad (forever)
 import           Data.Text (Text)
 import           Data.Text as T hiding (filter, tail, map)
 import           Data.Text.Encoding (decodeUtf8)
-import           MusicSorter.MPRIS (TrackInfo(..))
+import           MusicSorter.TrackInfo (TrackInfo(..))
 import           MusicSorter.TagParsing
 import           Network.HTTP.Req
 
@@ -33,7 +33,7 @@ getPage url = runReq defaultHttpConfig $
 
 url :: Text -> Text -> Url 'Https
 url artist song =
-  let base :: Url Https
+  let base :: Url 'Https
       base = https "www.azlyrics.com"
 
       quotedArtist = normalize artist

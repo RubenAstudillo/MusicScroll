@@ -1,4 +1,5 @@
-{-# language NamedFieldPuns, RecordWildCards, OverloadedStrings, BangPatterns #-}
+{-# language NamedFieldPuns, RecordWildCards, OverloadedStrings,
+  BangPatterns #-}
 module MusicSorter.UI (setupUIThread) where
 
 import           Control.Concurrent.Async (withAsyncBound)
@@ -9,12 +10,13 @@ import           Control.Concurrent.STM.TMVar (TMVar, newEmptyTMVar,
                                                takeTMVar, putTMVar)
 import           Control.Monad (forever)
 import           Data.Functor (void)
-import           Data.GI.Gtk.Threading (setCurrentThreadAsGUIThread, postGUISync)
+import           Data.GI.Gtk.Threading (setCurrentThreadAsGUIThread,
+                                        postGUISync)
 import           Data.Maybe (fromJust)
 import           Data.Text (Text)
 import           Data.Text as T
 import qualified GI.Gtk as Gtk
-import           MusicSorter.MPRIS (TrackInfo(..))
+import           MusicSorter.TrackInfo (TrackInfo(..))
 
 import Paths_musicSorter
 
@@ -54,7 +56,7 @@ uiThread ctxMVar = do
   atomically (putTMVar ctxMVar appCtx)
   Gtk.labelSetText titleLabel "Hola Mundo"
   Gtk.widgetShowAll mainWindow
-  _ <- Gtk.onWidgetDestroy mainWindow Gtk.mainQuit
+  _ <- Gtk.onWidgetDestroy mainWindow (Gtk.mainQuit >> fail "no")
   Gtk.main
 
 ---

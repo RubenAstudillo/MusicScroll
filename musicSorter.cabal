@@ -38,6 +38,8 @@ library
                        MusicSorter.MPRIS
                        MusicSorter.AZLyrics
                        MusicSorter.TagParsing
+                       MusicSorter.TrackInfo
+                       MusicSorter.DBusNames
   other-modules:       Paths_musicSorter
 
 -- test-suite playground
