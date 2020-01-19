@@ -1,16 +1,17 @@
-{-# language OverloadedStrings, DataKinds, NamedFieldPuns #-}
+{-# language OverloadedStrings, DataKinds, NamedFieldPuns, TypeApplications #-}
 module MusicScroll.AZLyrics (lyricsThread) where
 
-import           Control.Concurrent.STM (atomically)
-import           Control.Concurrent.STM.TBQueue (TBQueue, readTBQueue,
-                                                 writeTBQueue)
-import           Control.Monad (forever)
-import           Data.Text (Text)
-import           Data.Text as T hiding (filter, tail, map)
-import           Data.Text.Encoding (decodeUtf8)
-import           MusicScroll.TrackInfo (TrackInfo(..), cleanTrack)
-import           MusicScroll.TagParsing
-import           Network.HTTP.Req
+import Control.Concurrent.STM (atomically)
+import Control.Concurrent.STM.TBQueue (TBQueue, readTBQueue, writeTBQueue)
+import Control.Exception (try, SomeException)
+import Control.Monad (forever)
+import Data.Either (fromRight)
+import Data.Text (Text)
+import Data.Text as T hiding (filter, tail, map)
+import Data.Text.Encoding (decodeUtf8)
+import MusicScroll.TrackInfo (TrackInfo(..), cleanTrack)
+import MusicScroll.TagParsing
+import Network.HTTP.Req
 
 lyricsThread :: TBQueue TrackInfo -> TBQueue (TrackInfo, [Text]) -> IO a
 lyricsThread input output = forever $
