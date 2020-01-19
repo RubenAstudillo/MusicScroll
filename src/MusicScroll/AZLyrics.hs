@@ -22,12 +22,13 @@ lyricsThread input output = forever $
 lyricsPipeline :: TrackInfo -> IO [Text]
 lyricsPipeline (TrackInfo {tArtist, tTitle}) =
   do let songUrl = url tArtist tTitle
-     resp <- getPage songUrl
-     if responseStatusCode resp /= 200
-       then return [ "Fallo AZLyrics" ]
-       else
-         do let body = decodeUtf8 (responseBody resp) -- can throw, decode header?
-            return (extractLyricsFromPage body)
+     resp <- try @SomeException (getPage songUrl)
+     let notValid = either (const True)
+                      ((/= 200) . responseStatusCode) resp
+     if notValid then return [ "I failed at getting the lyrics!" ]
+       else let Right realResp = resp
+                body = decodeUtf8 (responseBody realResp)
+            in return (extractLyricsFromPage body)
 
 getPage :: Url 'Https -> IO BsResponse
 getPage url = runReq defaultHttpConfig $
