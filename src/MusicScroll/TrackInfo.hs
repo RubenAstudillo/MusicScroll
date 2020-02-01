@@ -23,7 +23,7 @@ import           MusicScroll.DBusNames
 
 data TrackInfo = TrackInfo
   { tTitle  :: Text
-  , tArtist :: Text
+  , tArtist :: Text -- xesam:artist is weird
   } deriving (Eq, Show) -- TODO: better eq instance
 
 data TrackInfoError = NoMusicClient MethodError | NoMetadata
@@ -37,14 +37,24 @@ tryGetInfo client busName = do
                   (methodCall mediaObject mediaInterface "Metadata") {
                     methodCallDestination = pure busName
                   } & fmap (first NoMusicClient)
-    metadata <- getProp "Metadata"
-    return . join $ obtainTrackInfo <$> metadata 
+    return . join $ obtainTrackInfo <$> metadata
 
 obtainTrackInfo :: Map Text Variant -> Either TrackInfoError TrackInfo
 obtainTrackInfo metadata =
   let lookup name = Map.lookup name metadata >>= fromVariant
-      track = TrackInfo <$> lookup "xesam:title" <*> lookup "xesam:artist"
-  in maybe (Left NoMetadata) Right track
+      track = TrackInfo <$> lookup "xesam:title" <*>
+                xesamArtistFix (lookup "xesam:artist") (lookup "xesam:artist")
+  in maybe (Left NoMetadata) pure track
+
+-- xesam:artist by definition should return a `[Text]`, but in practice
+-- it returns a `Text`. This function makes it always return `Text`.
+xesamArtistFix :: Maybe Text -> Maybe [Text] -> Maybe Text
+xesamArtistFix (Just title) _ = pure title
+xesamArtistFix Nothing (Just arr) | (title : _) <- arr = pure title
+xesamArtistFix _ _ = Nothing
+
+cleanTrack :: TrackInfo -> TrackInfo
+cleanTrack t@(TrackInfo {tTitle}) = t { tTitle = cleanTitle tTitle }
 
 -- Remove .mp3 and numbers from the title.
 cleanTitle :: Text -> Text
