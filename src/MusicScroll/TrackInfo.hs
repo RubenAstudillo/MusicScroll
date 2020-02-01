@@ -33,25 +33,18 @@ data TrackInfoError = NoMusicClient MethodError | NoMetadata
 -- wait for a change on the dbus connection to try again.
 tryGetInfo :: Client -> BusName -> IO (Either TrackInfoError TrackInfo)
 tryGetInfo client busName = do
-    let getProp prop =
-          getPropertyValue client
-              (methodCall mediaObject mediaInterface prop) {
-                  methodCallDestination = pure busName
-              } & fmap (first NoMusicClient)
+    metadata <- getPropertyValue client
+                  (methodCall mediaObject mediaInterface "Metadata") {
+                    methodCallDestination = pure busName
+                  } & fmap (first NoMusicClient)
     metadata <- getProp "Metadata"
-    position <- getProp "Position"
-    return . join $
-      obtainTrackInfo <$> metadata <*> position
+    return . join $ obtainTrackInfo <$> metadata 
 
-obtainTrackInfo :: Map Text Variant -> Int64
-                -> Either TrackInfoError TrackInfo
-obtainTrackInfo metadata pos =
+obtainTrackInfo :: Map Text Variant -> Either TrackInfoError TrackInfo
+obtainTrackInfo metadata =
   let lookup name = Map.lookup name metadata >>= fromVariant
       track = TrackInfo <$> lookup "xesam:title" <*> lookup "xesam:artist"
   in maybe (Left NoMetadata) Right track
-
-cleanTrack :: TrackInfo -> TrackInfo
-cleanTrack t@(TrackInfo {tTitle}) = t { tTitle = cleanTitle tTitle }
 
 -- Remove .mp3 and numbers from the title.
 cleanTitle :: Text -> Text
