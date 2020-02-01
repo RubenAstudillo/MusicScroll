@@ -23,7 +23,7 @@ dbusThread outChan = bracket connectSession disconnect
     go = do mtrack <- liftIO . uncurry tryGetInfo =<<
                       (,) <$> gets cClient <*> gets cBusActive
             case mtrack of
-              Left (NoMusicClient _) -> changeClient
+              Left (NoMusicClient _) -> changeMusicClient
               Left NoMetadata -> waitForChange mediaPropChangeRule
               Right track -> writeIfNotRepeated track >> waitForChange mediaPropChangeRule
             go

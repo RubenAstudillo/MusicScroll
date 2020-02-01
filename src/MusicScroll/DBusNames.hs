@@ -8,6 +8,7 @@ smplayerBus = "org.mpris.MediaPlayer2.smplayer"
 vlcBus      = "org.mpris.MediaPlayer2.vlc"
 dbusBus     = "org.freedesktop.DBus"
 
+-- TODO: Add more!
 allBuses :: [BusName]
 allBuses = [smplayerBus, vlcBus]
 

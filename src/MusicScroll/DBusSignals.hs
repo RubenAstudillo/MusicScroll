@@ -2,7 +2,7 @@
 module MusicScroll.DBusSignals
   ( mediaPropChangeRule
   , waitForChange
-  , changeClient
+  , changeMusicClient
   ) where
 
 import Control.Concurrent.STM (atomically)
@@ -27,30 +27,30 @@ busNameAddedRule = matchAny
   { matchSender    = pure dbusBus -- unique name
   , matchPath      = pure "/org/freedesktop/DBus"
   , matchInterface = pure "org.freedesktop.DBus"
-  , matchMember    = pure "NameAcquired" }
+  , matchMember    = pure "NameOwnerChanged" }
 
 waitForChange :: MatchRule -> StateT ConnState IO ()
 waitForChange rule =
   do client <- gets cClient
      liftIO $ do
        trigger       <- atomically newEmptyTMVar
-       disarmHandler <- gotSignalOfChange client trigger rule
+       disarmHandler <- armSignal client trigger rule
        _ <- atomically $ takeTMVar trigger
        removeMatch client disarmHandler
 
-gotSignalOfChange :: Client -> TMVar () -> MatchRule -> IO SignalHandler
-gotSignalOfChange client trigger rule =
+armSignal :: Client -> TMVar () -> MatchRule -> IO SignalHandler
+armSignal client trigger rule =
   addMatch client rule (\_ -> atomically ( putTMVar trigger () ))
 
-changeClient :: StateT ConnState IO ()
-changeClient =
+changeMusicClient :: StateT ConnState IO ()
+changeMusicClient =
   do client <- gets cClient
      availableStatus <- liftIO $ traverse (checkName client) allBuses
      let taggedBuses = zip allBuses availableStatus
      case fst <$> find snd taggedBuses of
        Just newBus -> modify (\s -> s { cBusActive = newBus })
        Nothing     -> do waitForChange busNameAddedRule
-                         changeClient
+                         changeMusicClient
 
 checkName :: Client -> BusName -> IO Bool
 checkName client name = do
