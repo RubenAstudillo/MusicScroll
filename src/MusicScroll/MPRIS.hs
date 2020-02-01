@@ -33,13 +33,13 @@ writeIfNotRepeated outChan current = do
     query <- (/=) <$> gets cLastSentTrack <*> pure (Just current)
     when query $
       do liftIO . atomically $ writeTBQueue outChan current
-         modify (\s -> s { cLastSentTrack = pure current })
+         modify (setSong current)
 
 waitForChange :: StateT ConnState IO ()
 waitForChange =
   do client <- gets cClient
      liftIO $ do
-       trigger <- atomically newEmptyTMVar
+       trigger       <- atomically newEmptyTMVar
        disarmHandler <- gotSignalOfChange client trigger
        _ <- atomically $ takeTMVar trigger
        removeMatch client disarmHandler
@@ -61,3 +61,5 @@ data ConnState = ConnState
 newConnState :: Client -> ConnState
 newConnState c = ConnState c smplayerBus Nothing
 
+setSong :: TrackInfo -> ConnState -> ConnState
+setSong track s = s { cLastSentTrack = pure track }
