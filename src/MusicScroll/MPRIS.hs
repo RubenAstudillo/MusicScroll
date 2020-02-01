@@ -18,22 +18,22 @@ import MusicScroll.TrackInfo
 import MusicScroll.DBusNames
 
 dbusThread :: TBQueue TrackInfo -> IO a
-dbusThread outChan =
-  bracket connectSession disconnect (evalStateT go . newConnState)
+dbusThread outChan = bracket connectSession disconnect
+  (evalStateT go . newConnState outChan)
   where
     go :: StateT ConnState IO a
     go = do mtrack <- gets cClient >>= liftIO . tryGetInfo
-            traverse_ (writeIfNotRepeated outChan) mtrack
+            traverse_ writeIfNotRepeated mtrack
             waitForChange
             go
 
-writeIfNotRepeated :: TBQueue TrackInfo -> TrackInfo
-                   -> StateT ConnState IO ()
-writeIfNotRepeated outChan current = do
-    query <- (/=) <$> gets cLastSentTrack <*> pure (Just current)
+writeIfNotRepeated :: TrackInfo -> StateT ConnState IO ()
+writeIfNotRepeated newSong = do
+    query   <- (/=) <$> gets cLastSentTrack <*> pure (Just newSong)
+    outChan <- gets cOutChan
     when query $
-      do liftIO . atomically $ writeTBQueue outChan current
-         modify (setSong current)
+      do liftIO . atomically $ writeTBQueue outChan newSong
+         modify (setSong newSong)
 
 waitForChange :: StateT ConnState IO ()
 waitForChange =
@@ -55,11 +55,12 @@ gotSignalOfChange client trigger =
 data ConnState = ConnState
   { cClient        :: Client
   , cBusActive     :: BusName
+  , cOutChan       :: TBQueue TrackInfo
   , cLastSentTrack :: Maybe TrackInfo
   }
 
-newConnState :: Client -> ConnState
-newConnState c = ConnState c smplayerBus Nothing
+newConnState :: TBQueue TrackInfo -> Client -> ConnState
+newConnState outChan c = ConnState c smplayerBus outChan Nothing
 
 setSong :: TrackInfo -> ConnState -> ConnState
 setSong track s = s { cLastSentTrack = pure track }
