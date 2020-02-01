@@ -3,9 +3,10 @@ module MusicScroll.DBusNames where
 
 import DBus (BusName, ObjectPath, InterfaceName)
 
-smplayerBus, vlcBus :: BusName
+smplayerBus, vlcBus, dbusBus :: BusName
 smplayerBus = "org.mpris.MediaPlayer2.smplayer"
 vlcBus      = "org.mpris.MediaPlayer2.vlc"
+dbusBus     = "org.freedesktop.DBus"
 
 allBuses :: [BusName]
 allBuses = [smplayerBus, vlcBus]

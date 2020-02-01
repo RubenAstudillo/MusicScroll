@@ -24,7 +24,7 @@ mediaPropChangeRule = matchAny
   , matchInterface = pure "org.freedesktop.DBus.Properties"
   , matchMember    = pure "PropertiesChanged" }
 busNameAddedRule = matchAny
-  { matchSender    = pure "org.freedesktop.DBus" -- unique name
+  { matchSender    = pure dbusBus -- unique name
   , matchPath      = pure "/org/freedesktop/DBus"
   , matchInterface = pure "org.freedesktop.DBus"
   , matchMember    = pure "NameAcquired" }
@@ -56,6 +56,6 @@ checkName :: Client -> BusName -> IO Bool
 checkName client name = do
   returnCall <- call_ client
       (methodCall "/org/freedesktop/DBus" "org.freedesktop.DBus" "NameHasOwner")
-        { methodCallDestination = Just "org.freedesktop.DBus"
+        { methodCallDestination = Just dbusBus
         , methodCallBody = [toVariant name] }
   return . fromJust . fromVariant . head . methodReturnBody $ returnCall
