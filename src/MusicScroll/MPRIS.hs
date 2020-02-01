@@ -5,7 +5,7 @@ import Control.Concurrent.STM (atomically)
 import Control.Concurrent.STM.TBQueue (TBQueue, writeTBQueue)
 import Control.Concurrent.STM.TMVar (TMVar, takeTMVar, newEmptyTMVar, putTMVar)
 import Control.Exception (bracket)
-import Control.Monad (when)
+import Control.Monad (when, join, (=<<))
 import Control.Monad.IO.Class (MonadIO(..))
 import Control.Monad.State.Class (MonadState(..), gets, modify)
 import Control.Monad.Trans.State (StateT, evalStateT)
@@ -22,7 +22,8 @@ dbusThread outChan = bracket connectSession disconnect
   (evalStateT go . newConnState outChan)
   where
     go :: StateT ConnState IO a
-    go = do mtrack <- gets cClient >>= liftIO . tryGetInfo
+    go = do mtrack <- liftIO . uncurry tryGetInfo =<<
+                      (,) <$> gets cClient <*> gets cBusActive
             traverse_ writeIfNotRepeated mtrack
             waitForChange
             go

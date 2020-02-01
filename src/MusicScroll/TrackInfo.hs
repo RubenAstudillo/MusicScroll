@@ -33,16 +33,15 @@ data TrackInfoError = NoMusicClient MethodError | NoMetadata
 -- An exception here means that either there is not a music player
 -- running or what it is running it's not a song. Either way we should
 -- wait for a change on the dbus connection to try again.
-tryGetInfo :: Client -> IO (Either TrackInfoError TrackInfo)
-tryGetInfo client = do
-    metadata <- getPropertyValue client
-                    (methodCall mediaObject mediaInterface "Metadata") {
-                    methodCallDestination = Just smplayerBus }
-                    & fmap (first NoMusicClient)
-    position <- getPropertyValue client
-                    (methodCall mediaObject mediaInterface "Position") {
-                    methodCallDestination = Just smplayerBus }
-                    & fmap (first NoMusicClient)
+tryGetInfo :: Client -> BusName -> IO (Either TrackInfoError TrackInfo)
+tryGetInfo client busName = do
+    let getProp prop =
+          getPropertyValue client
+              (methodCall mediaObject mediaInterface prop) {
+                  methodCallDestination = pure busName
+              } & fmap (first NoMusicClient)
+    metadata <- getProp "Metadata"
+    position <- getProp "Position"
     return . join $
       obtainTrackInfo <$> metadata <*> position
 
@@ -54,8 +53,6 @@ obtainTrackInfo metadata pos =
               <*> lookup "xesam:artist" <*> lookup "mpris:length"
               <*> pure pos
   in maybe (Left NoMetadata) Right track
-
-
 
 cleanTrack :: TrackInfo -> TrackInfo
 cleanTrack t@(TrackInfo {tTitle}) = t { tTitle = cleanTitle tTitle }
