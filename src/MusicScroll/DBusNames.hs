@@ -7,6 +7,9 @@ smplayerBus, vlcBus :: BusName
 smplayerBus = "org.mpris.MediaPlayer2.smplayer"
 vlcBus      = "org.mpris.MediaPlayer2.vlc"
 
+allBuses :: [BusName]
+allBuses = [smplayerBus, vlcBus]
+
 mediaObject :: ObjectPath
 mediaObject = "/org/mpris/MediaPlayer2"
 

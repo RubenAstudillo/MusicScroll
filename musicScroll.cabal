@@ -51,6 +51,8 @@ library
                        MusicScroll.TagParsing
                        MusicScroll.TrackInfo
                        MusicScroll.DBusNames
+                       MusicScroll.DBusSignals
+                       MusicScroll.ConnState
   other-modules:       Paths_musicScroll
 
 -- test-suite playground

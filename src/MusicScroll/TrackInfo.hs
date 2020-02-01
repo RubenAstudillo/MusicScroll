@@ -11,13 +11,11 @@ import           DBus
 import           DBus.Client
 import           Data.Bifunctor (first)
 import           Data.Function ((&))
-import           Data.Int (Int64)
 import           Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import           Data.Text (Text)
 import qualified Data.Text as T
 import           Data.Char (isAlpha)
-import           Data.Bifunctor
 
 import           MusicScroll.DBusNames
 

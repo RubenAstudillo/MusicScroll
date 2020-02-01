@@ -1,21 +1,19 @@
 {-# language OverloadedStrings, ScopedTypeVariables, NamedFieldPuns #-}
-module MusicScroll.MPRIS where
+module MusicScroll.MPRIS (dbusThread) where
 
 import Control.Concurrent.STM (atomically)
 import Control.Concurrent.STM.TBQueue (TBQueue, writeTBQueue)
-import Control.Concurrent.STM.TMVar (TMVar, takeTMVar, newEmptyTMVar, putTMVar)
 import Control.Exception (bracket)
-import Control.Monad (when, join, (=<<))
+import Control.Monad (when, (=<<))
 import Control.Monad.IO.Class (MonadIO(..))
-import Control.Monad.State.Class (MonadState(..), gets, modify)
+import Control.Monad.State.Class (gets, modify)
 import Control.Monad.Trans.State (StateT, evalStateT)
-import Data.Foldable (traverse_)
 
 import DBus.Client
-import DBus (BusName)
 
 import MusicScroll.TrackInfo
-import MusicScroll.DBusNames
+import MusicScroll.DBusSignals
+import MusicScroll.ConnState
 
 dbusThread :: TBQueue TrackInfo -> IO a
 dbusThread outChan = bracket connectSession disconnect
@@ -24,8 +22,10 @@ dbusThread outChan = bracket connectSession disconnect
     go :: StateT ConnState IO a
     go = do mtrack <- liftIO . uncurry tryGetInfo =<<
                       (,) <$> gets cClient <*> gets cBusActive
-            traverse_ writeIfNotRepeated mtrack
-            waitForChange
+            case mtrack of
+              Left (NoMusicClient _) -> changeClient
+              Left NoMetadata -> waitForChange mediaPropChangeRule
+              Right track -> writeIfNotRepeated track >> waitForChange mediaPropChangeRule
             go
 
 writeIfNotRepeated :: TrackInfo -> StateT ConnState IO ()
@@ -35,34 +35,3 @@ writeIfNotRepeated newSong = do
     when query $
       do liftIO . atomically $ writeTBQueue outChan newSong
          modify (setSong newSong)
-
-waitForChange :: StateT ConnState IO ()
-waitForChange =
-  do client <- gets cClient
-     liftIO $ do
-       trigger       <- atomically newEmptyTMVar
-       disarmHandler <- gotSignalOfChange client trigger
-       _ <- atomically $ takeTMVar trigger
-       removeMatch client disarmHandler
-
-gotSignalOfChange :: Client -> TMVar () -> IO SignalHandler
-gotSignalOfChange client trigger =
-  let rule = matchAny
-        { matchPath      = pure mediaObject
-        , matchInterface = pure "org.freedesktop.DBus.Properties"
-        , matchMember    = pure "PropertiesChanged" }
-  in addMatch client rule (\_ -> atomically ( putTMVar trigger () ))
-
-data ConnState = ConnState
-  { cClient        :: Client
-  , cBusActive     :: BusName
-  , cOutChan       :: TBQueue TrackInfo
-  , cLastSentTrack :: Maybe TrackInfo
-  }
-
-newConnState :: TBQueue TrackInfo -> Client -> ConnState
--- newConnState outChan c = ConnState c smplayerBus outChan Nothing
-newConnState outChan c = ConnState c vlcBus outChan Nothing
-
-setSong :: TrackInfo -> ConnState -> ConnState
-setSong track s = s { cLastSentTrack = pure track }
