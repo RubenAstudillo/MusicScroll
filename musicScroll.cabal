@@ -7,7 +7,7 @@ name:                musicScroll
 version:             0.1.1.0
 synopsis:            Supply your tunes info without leaving your music player. 
 description:         Automatically retrive the lyrics of of your current
-                     song on SMPlayer and update it on each change. See the
+                     song on SMPlayer/VLC and update it on each change. See the
                      lyrics on a really elegant GTK app.
 license:             GPL-3
 license-file:        LICENSE
