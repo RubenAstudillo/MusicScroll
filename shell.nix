@@ -5,21 +5,24 @@ let
   inherit (nixpkgs) pkgs;
 
   f = { mkDerivation, async, base, bytestring, containers, dbus
-      , gi-gtk, gi-gtk-hs, gtk3, req, stdenv, stm, tagsoup, text
+      , gi-gtk, gi-gtk-hs, gtk3, mtl, req, stdenv, stm, tagsoup, text
+      , transformers
       }:
       mkDerivation {
         pname = "musicScroll";
-        version = "0.1.0.0";
+        version = "0.1.1.0";
         src = ./.;
         isLibrary = true;
         isExecutable = true;
         enableSeparateDataOutput = true;
         libraryHaskellDepends = [
-          async base bytestring containers dbus gi-gtk gi-gtk-hs req stm
-          tagsoup text
+          async base bytestring containers dbus gi-gtk gi-gtk-hs mtl req stm
+          tagsoup text transformers
         ];
         executableHaskellDepends = [ base ];
         executablePkgconfigDepends = [ gtk3 ];
+        homepage = "https://github.com/RubenAstudillo/MusicScroll";
+        description = "Supply your tunes info without leaving your music player";
         license = stdenv.lib.licenses.gpl3;
       };
 

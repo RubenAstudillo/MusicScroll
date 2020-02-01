@@ -38,6 +38,8 @@ library
                        gi-gtk-hs,
                        text,
                        bytestring,
+                       mtl,
+                       transformers,
                        stm,
                        async,
                        req,
