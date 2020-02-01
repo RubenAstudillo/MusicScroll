@@ -24,8 +24,6 @@ import           MusicScroll.DBusNames
 data TrackInfo = TrackInfo
   { tTitle  :: Text
   , tArtist :: Text
-  , tLength :: Double
-  , tPos    :: Int64
   } deriving (Eq, Show) -- TODO: better eq instance
 
 data TrackInfoError = NoMusicClient MethodError | NoMetadata
@@ -49,9 +47,7 @@ obtainTrackInfo :: Map Text Variant -> Int64
                 -> Either TrackInfoError TrackInfo
 obtainTrackInfo metadata pos =
   let lookup name = Map.lookup name metadata >>= fromVariant
-      track = TrackInfo <$> lookup "xesam:title"
-              <*> lookup "xesam:artist" <*> lookup "mpris:length"
-              <*> pure pos
+      track = TrackInfo <$> lookup "xesam:title" <*> lookup "xesam:artist"
   in maybe (Left NoMetadata) Right track
 
 cleanTrack :: TrackInfo -> TrackInfo
