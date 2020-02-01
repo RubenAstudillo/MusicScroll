@@ -58,4 +58,6 @@ checkName client name = do
       (methodCall "/org/freedesktop/DBus" "org.freedesktop.DBus" "NameHasOwner")
         { methodCallDestination = Just dbusBus
         , methodCallBody = [toVariant name] }
+  -- We assume this call is correct, as it's done to the master dbus
+  -- object. So fromJust/head are safe.
   return . fromJust . fromVariant . head . methodReturnBody $ returnCall

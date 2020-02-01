@@ -1,4 +1,3 @@
-{-# language OverloadedStrings, ScopedTypeVariables, NamedFieldPuns #-}
 module MusicScroll.MPRIS (dbusThread) where
 
 import Control.Concurrent.STM (atomically)
@@ -25,7 +24,8 @@ dbusThread outChan = bracket connectSession disconnect
             case mtrack of
               Left (NoMusicClient _) -> changeMusicClient
               Left NoMetadata -> waitForChange mediaPropChangeRule
-              Right track -> writeIfNotRepeated track >> waitForChange mediaPropChangeRule
+              Right track -> do writeIfNotRepeated track
+                                waitForChange mediaPropChangeRule
             go
 
 writeIfNotRepeated :: TrackInfo -> StateT ConnState IO ()

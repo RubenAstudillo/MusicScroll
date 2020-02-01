@@ -19,7 +19,6 @@ data ConnState = ConnState
   }
 
 newConnState :: TBQueue TrackInfo -> Client -> ConnState
--- newConnState outChan c = ConnState c smplayerBus outChan Nothing
 newConnState outChan c = ConnState c vlcBus outChan Nothing
 
 setSong :: TrackInfo -> ConnState -> ConnState

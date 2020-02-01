@@ -1,4 +1,4 @@
-{-# language OverloadedStrings, ScopedTypeVariables, NamedFieldPuns #-}
+{-# language OverloadedStrings, NamedFieldPuns #-}
 module MusicScroll.TrackInfo
   ( tryGetInfo
   , TrackInfo(..)
