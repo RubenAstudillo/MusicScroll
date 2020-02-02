@@ -48,7 +48,7 @@ changeMusicClient =
      availableStatus <- liftIO $ traverse (checkName client) allBuses
      let taggedBuses = zip allBuses availableStatus
      case fst <$> find snd taggedBuses of
-       Just newBus -> modify (\s -> s { cBusActive = newBus })
+       Just newBus -> modify (setBus newBus)
        Nothing     -> do waitForChange busNameAddedRule
                          changeMusicClient
 

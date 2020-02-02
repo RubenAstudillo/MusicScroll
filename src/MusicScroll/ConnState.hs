@@ -2,6 +2,7 @@ module MusicScroll.ConnState
   ( ConnState(..)
   , newConnState
   , setSong
+  , setBus
   ) where
 
 import DBus (BusName)
@@ -20,6 +21,9 @@ data ConnState = ConnState
 
 newConnState :: TBQueue TrackInfo -> Client -> ConnState
 newConnState outChan c = ConnState c vlcBus outChan Nothing
+
+setBus :: BusName -> ConnState -> ConnState
+setBus newBus conn = conn { cBusActive = newBus }
 
 setSong :: TrackInfo -> ConnState -> ConnState
 setSong track s = s { cLastSentTrack = pure track }

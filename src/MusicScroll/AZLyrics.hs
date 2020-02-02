@@ -1,4 +1,5 @@
-{-# language OverloadedStrings, DataKinds, NamedFieldPuns, TypeApplications #-}
+{-# language OverloadedStrings, DataKinds, NamedFieldPuns,
+             TypeApplications #-}
 module MusicScroll.AZLyrics (lyricsThread) where
 
 import Control.Concurrent.STM (atomically)
