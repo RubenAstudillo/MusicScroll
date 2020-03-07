@@ -4,20 +4,22 @@ let
 
   inherit (nixpkgs) pkgs;
 
-  f = { mkDerivation, async, base, bytestring, containers, dbus
-      , gi-gtk, gi-gtk-hs, gtk3, mtl, req, stdenv, stm, tagsoup, text
-      , transformers
+  f = { mkDerivation, async, base, bytestring, containers
+      , cryptonite, dbus, directory, gi-gtk, gi-gtk-hs, gtk3, mtl, req
+      , sqlite-simple, stdenv, stm, tagsoup, text, transformers
+      , xdg-basedir
       }:
       mkDerivation {
         pname = "musicScroll";
-        version = "0.1.1.0";
+        version = "0.1.2.0";
         src = ./.;
         isLibrary = true;
         isExecutable = true;
         enableSeparateDataOutput = true;
         libraryHaskellDepends = [
-          async base bytestring containers dbus gi-gtk gi-gtk-hs mtl req stm
-          tagsoup text transformers
+          async base bytestring containers cryptonite dbus directory gi-gtk
+          gi-gtk-hs mtl req sqlite-simple stm tagsoup text transformers
+          xdg-basedir
         ];
         executableHaskellDepends = [ base ];
         executablePkgconfigDepends = [ gtk3 ];

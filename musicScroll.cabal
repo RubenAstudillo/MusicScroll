@@ -43,16 +43,23 @@ library
                        stm,
                        async,
                        req,
-                       tagsoup
+                       tagsoup,
+                       sqlite-simple,
+                       xdg-basedir,
+                       cryptonite,
+                       bytestring,
+                       directory
   exposed-modules:     MusicScroll.UI,
                        MusicScroll.RealMain
                        MusicScroll.MPRIS
                        MusicScroll.AZLyrics
+                       MusicScroll.LyricsPipeline
                        MusicScroll.TagParsing
                        MusicScroll.TrackInfo
                        MusicScroll.DBusNames
                        MusicScroll.DBusSignals
                        MusicScroll.ConnState
+                       MusicScroll.DatabaseUtils
   other-modules:       Paths_musicScroll
 
 -- test-suite playground

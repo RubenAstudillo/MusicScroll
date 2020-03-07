@@ -1,34 +1,29 @@
 {-# language OverloadedStrings, DataKinds, NamedFieldPuns,
              TypeApplications #-}
-module MusicScroll.AZLyrics (lyricsThread) where
+module MusicScroll.AZLyrics (getLyricsFromWeb) where
 
-import Control.Concurrent.STM (atomically)
-import Control.Concurrent.STM.TBQueue (TBQueue, readTBQueue, writeTBQueue)
 import Control.Exception (try, SomeException)
-import Control.Monad (forever)
+import Control.Applicative (Alternative(empty))
 import Data.Text (Text)
-import Data.Text as T hiding (filter, tail, map)
+import Data.Text as T hiding (filter, tail, map, empty)
 import Data.Text.Encoding (decodeUtf8)
-import MusicScroll.TrackInfo (TrackInfo(..), cleanTrack)
-import MusicScroll.TagParsing
 import Network.HTTP.Req
 
-lyricsThread :: TBQueue TrackInfo -> TBQueue (TrackInfo, [Text]) -> IO a
-lyricsThread input output = forever $
-  do trackinfo <- cleanTrack <$> atomically (readTBQueue input)
-     lyrics <- lyricsPipeline trackinfo
-     atomically $ writeTBQueue output (trackinfo, lyrics)
+import MusicScroll.TrackInfo (TrackInfo(..))
+import MusicScroll.TagParsing
+import MusicScroll.DatabaseUtils (insertDBLyrics)
 
-lyricsPipeline :: TrackInfo -> IO [Text]
-lyricsPipeline (TrackInfo {tArtist, tTitle}) =
+getLyricsFromWeb :: TrackInfo -> IO Lyrics
+getLyricsFromWeb track@(TrackInfo {tArtist, tTitle}) =
   do let songUrl = url tArtist tTitle
      resp <- try @SomeException (getPage songUrl)
      let notValid = either (const True)
                       ((/= 200) . responseStatusCode) resp
-     if notValid then return [ "I failed at getting the lyrics!" ]
+     if notValid then empty
        else let Right realResp = resp
-                body = decodeUtf8 (responseBody realResp)
-            in return (extractLyricsFromPage body)
+                body   = decodeUtf8 (responseBody realResp)
+                lyrics = extractLyricsFromPage body
+            in insertDBLyrics track lyrics *> return lyrics
 
 getPage :: Url 'Https -> IO BsResponse
 getPage url = runReq defaultHttpConfig $
