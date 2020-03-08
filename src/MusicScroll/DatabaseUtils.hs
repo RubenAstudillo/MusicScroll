@@ -22,7 +22,7 @@ import           MusicScroll.TagParsing (Lyrics(..))
 
 getDBLyrics :: TrackInfo -> IO Lyrics
 getDBLyrics track =
-  do songHash <- fileHash (tUrl track)
+  do songHash <- {-# SCC "fileHash" #-} fileHash (tUrl track)
      dbPath   <- getDBPath
      bracket (open dbPath) close $ \conn ->
        do execute_ conn sqlDBCreate

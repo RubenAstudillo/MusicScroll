@@ -30,6 +30,8 @@ let
 
   haskellPackages = if compiler == "default"
                        then pkgs.haskellPackages
+                       else if compiler == "profile"
+                       then pkgs.profiledHaskellPackages
                        else pkgs.haskell.packages.${compiler};
 
   variant = if doBenchmark then pkgs.haskell.lib.doBenchmark else pkgs.lib.id;
