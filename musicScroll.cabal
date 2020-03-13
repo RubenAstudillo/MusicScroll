@@ -48,7 +48,8 @@ library
                        xdg-basedir,
                        cryptonite,
                        bytestring,
-                       directory
+                       directory,
+                       deepseq
   exposed-modules:     MusicScroll.UI,
                        MusicScroll.RealMain
                        MusicScroll.MPRIS

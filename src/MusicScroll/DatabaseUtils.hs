@@ -6,11 +6,14 @@ module MusicScroll.DatabaseUtils
   , getDBPath
   ) where
 
-import           Prelude hiding (readFile)
+import           Prelude hiding (null)
 import           Control.Applicative (Alternative(..))
-import           Control.Exception (bracket)
-import           Crypto.Hash (hash, SHA1)
-import           Data.ByteString (readFile)
+import           Control.Exception (bracket, evaluate)
+import           Control.DeepSeq (rnf)
+import           Crypto.Hash (hash, SHA1, hashUpdate, hashInit, hashFinalize)
+import           Data.Function (fix, (&))
+import           Data.ByteString (hGet, null)
+import           System.IO (withFile, IOMode(..))
 import           Data.Text (Text)
 import           Database.SQLite.Simple
 import           System.Environment.XDG.BaseDir (getUserCacheDir)
@@ -22,7 +25,7 @@ import           MusicScroll.TagParsing (Lyrics(..))
 
 getDBLyrics :: TrackInfo -> IO Lyrics
 getDBLyrics track =
-  do songHash <- {-# SCC "fileHash" #-} fileHash (tUrl track)
+  do songHash <- fileHash (tUrl track)
      dbPath   <- getDBPath
      bracket (open dbPath) close $ \conn ->
        do execute_ conn sqlDBCreate
@@ -45,9 +48,18 @@ getDBPath = do cacheDir <- getUserCacheDir "musicScroll"
                createDirectory cacheDir <|> return ()
                return $ cacheDir ++ "/" ++ "lyrics.db"
 
--- | We use the exception thrown by readFile.
+-- | We use the exception thrown by withFile.
 fileHash :: FilePath -> IO String
-fileHash fp = (show . hash @_ @SHA1) <$> readFile fp
+fileHash fp = withFile fp ReadMode $ \hdl ->
+  let chunkSize = 512 * 1024
+      looper ctx =
+          do upd <- hGet hdl chunkSize
+             if null upd
+               then return (show (hashFinalize ctx))
+               else do let newCtx = hashUpdate ctx upd
+                       evaluate (rnf newCtx) -- Important!
+                       looper newCtx
+  in looper (hashInit @SHA1)
 
 sqlDBCreate, sqlInsertSong, sqlExtractLyrics :: Query
 sqlDBCreate =
