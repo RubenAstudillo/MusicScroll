@@ -8,6 +8,7 @@ import Data.Text (Text)
 import Data.Text as T hiding (filter, tail, map, empty)
 import Data.Text.Encoding (decodeUtf8)
 import Network.HTTP.Req
+import Control.Concurrent (forkIO)
 
 import MusicScroll.TrackInfo (TrackInfo(..))
 import MusicScroll.TagParsing
@@ -23,7 +24,7 @@ getLyricsFromWeb track@(TrackInfo {tArtist, tTitle}) =
        else let Right realResp = resp
                 body   = decodeUtf8 (responseBody realResp)
                 lyrics = extractLyricsFromPage body
-            in insertDBLyrics track lyrics *> return lyrics
+            in forkIO (insertDBLyrics track lyrics) *> return lyrics
 
 getPage :: Url 'Https -> IO BsResponse
 getPage url = runReq defaultHttpConfig $
