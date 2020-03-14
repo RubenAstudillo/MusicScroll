@@ -4,9 +4,10 @@ module MusicScroll.LyricsPipeline (lyricsThread, sizeOfQueue) where
 
 import Control.Concurrent.Async (withAsync, waitAnyCancel)
 import Control.Concurrent.STM (atomically)
-import Control.Concurrent.STM.TBQueue (TBQueue, readTBQueue, writeTBQueue, newTBQueue)
+import Control.Concurrent.STM.TBQueue ( TBQueue, readTBQueue, writeTBQueue,
+                                        newTBQueue )
 import Control.Applicative (Alternative(..))
-import Control.Monad.Trans.State
+import Control.Monad.Trans.State (StateT, get, put, evalStateT)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad (forever, when)
 import Data.Bifunctor (second)
@@ -41,15 +42,15 @@ seenSongsThread input output = forever $
 getLyricsThread :: TBQueue TrackIdentifier -> TBQueue UIEvent -> IO a
 getLyricsThread input output = forever $
   do trackIdent <- atomically (readTBQueue input)
-     event <- either caseMetadataErr caseTrack trackIdent
+     event <- either caseByPath caseByInfo trackIdent
      atomically $ writeTBQueue output event
 
-caseTrack :: TrackInfo -> IO UIEvent
-caseTrack track =
+caseByInfo :: TrackInfo -> IO UIEvent
+caseByInfo track =
   let tryGetLyrics = getDBLyrics (tUrl track) <|> getLyricsFromWeb track
   in (GotLyric track <$> tryGetLyrics) <|> pure (ErrorOn NoLyricsOnWeb)
 
-caseMetadataErr :: TrackByPath -> IO UIEvent
-caseMetadataErr (TrackByPath songPath cause) =
+caseByPath :: TrackByPath -> IO UIEvent
+caseByPath (TrackByPath songPath cause) =
   ((uncurry GotLyric) <$> getDBSong songPath) <|>
   pure (ErrorOn (NotOnDB cause))

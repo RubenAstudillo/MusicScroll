@@ -1,5 +1,4 @@
-{-# language NamedFieldPuns, RecordWildCards, OverloadedStrings,
-             BangPatterns #-}
+{-# language RecordWildCards, OverloadedStrings, BangPatterns #-}
 module MusicScroll.UI (setupUIThread) where
 
 import           Control.Concurrent.Async

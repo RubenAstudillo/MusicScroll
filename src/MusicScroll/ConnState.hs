@@ -7,7 +7,7 @@ module MusicScroll.ConnState
 import DBus (BusName)
 import DBus.Client (Client)
 import Control.Concurrent.STM.TBQueue (TBQueue)
-import MusicScroll.TrackInfo
+import MusicScroll.TrackInfo (TrackIdentifier)
 import MusicScroll.UIEvent (UIEvent)
 import MusicScroll.DBusNames
 
