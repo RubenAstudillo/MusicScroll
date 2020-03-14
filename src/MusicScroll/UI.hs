@@ -28,6 +28,10 @@ data AppContext = AppContext
   , artistLabel    :: Gtk.Label
   , lyricsTextView :: Gtk.TextView
   , errorLabel     :: Gtk.Label
+  , titleSuplementEntry   :: Gtk.Entry
+  , artistSuplementEntry  :: Gtk.Entry
+  , suplementAcceptButton :: Gtk.Button
+  , suplementResetButton  :: Gtk.Button
   }
 
 -- Remember to use Gtk.init Nothing before calling this.
@@ -44,6 +48,10 @@ getGtkScene = do
              <*> getWidget Gtk.Label "artistLabel"
              <*> getWidget Gtk.TextView "lyricsTextView"
              <*> getWidget Gtk.Label "errorLabel"
+             <*> getWidget Gtk.Entry "titleSuplementEntry"
+             <*> getWidget Gtk.Entry "artistSuplementEntry"
+             <*> getWidget Gtk.Button "suplementAcceptButton"
+             <*> getWidget Gtk.Button "suplementResetButton"
 
 setupUIThread :: TBQueue UIEvent -> IO ()
 setupUIThread events =
