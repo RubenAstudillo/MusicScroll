@@ -3,9 +3,9 @@ module MusicScroll.MPRIS (dbusThread) where
 import Control.Concurrent.STM (atomically)
 import Control.Concurrent.STM.TBQueue (TBQueue, writeTBQueue)
 import Control.Exception (bracket)
-import Control.Monad (when, (=<<))
+import Control.Monad ((=<<), forever)
 import Control.Monad.IO.Class (MonadIO(..))
-import Control.Monad.State.Class (gets, modify)
+import Control.Monad.State.Class (gets)
 import Control.Monad.Trans.State (StateT, evalStateT)
 
 import DBus.Client
@@ -13,25 +13,30 @@ import DBus.Client
 import MusicScroll.TrackInfo
 import MusicScroll.DBusSignals
 import MusicScroll.ConnState
+import MusicScroll.UIEvent
 
-dbusThread :: TBQueue TrackInfo -> IO a
-dbusThread outChan = bracket connectSession disconnect
-  (evalStateT go . newConnState outChan)
+dbusThread :: TBQueue TrackIdentifier -> TBQueue UIEvent -> IO a
+dbusThread trackChan eventChan = bracket connectSession disconnect
+  (evalStateT loop . newConnState trackChan eventChan)
   where
-    go :: StateT ConnState IO a
-    go = do mtrack <- liftIO . uncurry tryGetInfo =<<
-                      (,) <$> gets cClient <*> gets cBusActive
-            case mtrack of
-              Left (NoMusicClient _) -> changeMusicClient
-              Left NoMetadata -> waitForChange mediaPropChangeRule
-              Right track -> do writeIfNotRepeated track
-                                waitForChange mediaPropChangeRule
-            go
+    loop :: StateT ConnState IO a
+    loop = forever $ do
+      mtrack <- liftIO . uncurry tryGetInfo =<<
+                (,) <$> gets cClient <*> gets cBusActive
+      case mtrack of
+        Left (NoMusicClient _) -> changeMusicClient
+        Left (NoMetadata cause) -> reportErrorOnUI cause
+                                   *> waitForChange mediaPropChangeRule
+        (Right trackIdent) -> sendToLyricsPipeline trackIdent
+                              *> waitForChange mediaPropChangeRule
 
-writeIfNotRepeated :: TrackInfo -> StateT ConnState IO ()
-writeIfNotRepeated newSong = do
-    query   <- (/=) <$> gets cLastSentTrack <*> pure (Just newSong)
-    outChan <- gets cOutChan
-    when query $
-      do liftIO . atomically $ writeTBQueue outChan newSong
-         modify (setSong newSong)
+sendToLyricsPipeline :: TrackIdentifier -> StateT ConnState IO ()
+sendToLyricsPipeline trackIdent =
+  do outTrackChan <- gets cOutTrackChan
+     liftIO . atomically $ writeTBQueue outTrackChan trackIdent
+
+reportErrorOnUI :: MetadataError -> StateT ConnState IO ()
+reportErrorOnUI cause =
+  do eventChan <- gets cOutEventChan
+     let wrapedCause = ErrorOn (NotOnDB cause)
+     liftIO . atomically $ writeTBQueue eventChan wrapedCause
