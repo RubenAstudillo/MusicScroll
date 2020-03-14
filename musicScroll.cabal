@@ -59,6 +59,7 @@ library
                        MusicScroll.LyricsPipeline
                        MusicScroll.TagParsing
                        MusicScroll.TrackInfo
+                       MusicScroll.UIEvent
                        MusicScroll.DBusNames
                        MusicScroll.DBusSignals
                        MusicScroll.ConnState

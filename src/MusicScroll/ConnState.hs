@@ -9,18 +9,20 @@ import DBus (BusName)
 import DBus.Client (Client)
 import Control.Concurrent.STM.TBQueue (TBQueue)
 import MusicScroll.TrackInfo
-
+import MusicScroll.UIEvent (UIEvent)
 import MusicScroll.DBusNames
 
 data ConnState = ConnState
   { cClient        :: Client
   , cBusActive     :: BusName
-  , cOutChan       :: TBQueue TrackInfo
+  , cOutTrackChan  :: TBQueue TrackInfo
+  , cOutEventChan  :: TBQueue UIEvent
   , cLastSentTrack :: Maybe TrackInfo
   }
 
-newConnState :: TBQueue TrackInfo -> Client -> ConnState
-newConnState outChan c = ConnState c vlcBus outChan Nothing
+newConnState :: TBQueue TrackInfo -> TBQueue UIEvent -> Client -> ConnState
+newConnState trackChan eventChan c =
+  ConnState c vlcBus trackChan eventChan Nothing
 
 setBus :: BusName -> ConnState -> ConnState
 setBus newBus conn = conn { cBusActive = newBus }

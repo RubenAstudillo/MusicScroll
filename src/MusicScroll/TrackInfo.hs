@@ -3,6 +3,7 @@ module MusicScroll.TrackInfo
   ( tryGetInfo
   , TrackInfo(..)
   , TrackInfoError(..)
+  , MetadataError(..)
   , cleanTrack
   ) where
 
@@ -26,7 +27,8 @@ data TrackInfo = TrackInfo
   , tUrl    :: FilePath
   } deriving (Eq, Show) -- TODO: better eq instance
 
-data TrackInfoError = NoMusicClient MethodError | NoMetadata
+data MetadataError = NoArtist | NoTitle
+data TrackInfoError = NoMusicClient MethodError | NoMetadata MetadataError
 
 -- An exception here means that either there is not a music player
 -- running or what it is running it's not a song. Either way we should
@@ -41,18 +43,24 @@ tryGetInfo client busName = do
 
 obtainTrackInfo :: Map Text Variant -> Either TrackInfoError TrackInfo
 obtainTrackInfo metadata =
-  let lookup name = Map.lookup name metadata >>= fromVariant
-      track = TrackInfo <$> lookup "xesam:title"
-          <*> xesamArtistFix (lookup "xesam:artist") (lookup "xesam:artist")
-          <*> lookup "xesam:url"
-  in maybe (Left NoMetadata) pure track
+  let lookup :: IsVariant a => MetadataError -> Text -> Either MetadataError a
+      lookup cause name =
+        let mvalue = Map.lookup name metadata >>= fromVariant
+        in maybe (Left cause) Right mvalue
+
+      track = TrackInfo <$> lookup NoTitle "xesam:title"
+          <*> xesamArtistFix (lookup NoArtist "xesam:artist")
+                             (lookup NoArtist "xesam:artist")
+          <*> lookup NoTitle "xesam:url" -- impossible
+  in first NoMetadata track
 
 -- xesam:artist by definition should return a `[Text]`, but in practice
 -- it returns a `Text`. This function makes it always return `Text`.
-xesamArtistFix :: Maybe Text -> Maybe [Text] -> Maybe Text
-xesamArtistFix (Just title) _ = pure title
-xesamArtistFix Nothing (Just arr) | (title : _) <- arr = pure title
-xesamArtistFix _ _ = Nothing
+xesamArtistFix :: Either MetadataError Text
+               -> Either MetadataError [Text] -> Either MetadataError Text
+xesamArtistFix (Right title) _ = pure title
+xesamArtistFix (Left _) (Right arr) | (title : _) <- arr = pure title
+xesamArtistFix left _ = left
 
 cleanTrack :: TrackInfo -> TrackInfo
 cleanTrack t@(TrackInfo {tTitle}) = t { tTitle = cleanTitle tTitle }

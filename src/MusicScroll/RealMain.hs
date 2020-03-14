@@ -14,10 +14,10 @@ import MusicScroll.UI
 realMain :: IO ()
 realMain =
   do dbusSongChan <- atomically (newTBQueue sizeOfQueue)
-     lyricsChan   <- atomically (newTBQueue sizeOfQueue)
-     withAsync (setupUIThread lyricsChan) $ \setupUIA ->
-       withAsync (lyricsThread dbusSongChan lyricsChan) $ \lyricsA ->
-         withAsync (dbusThread dbusSongChan) $ \dbusA ->
+     eventChan   <- atomically (newTBQueue sizeOfQueue)
+     withAsync (setupUIThread eventChan) $ \setupUIA ->
+       withAsync (lyricsThread dbusSongChan eventChan) $ \lyricsA ->
+         withAsync (dbusThread dbusSongChan eventChan) $ \dbusA ->
            void $ waitAnyCancel [setupUIA, lyricsA, dbusA]
 
 sizeOfQueue :: Natural

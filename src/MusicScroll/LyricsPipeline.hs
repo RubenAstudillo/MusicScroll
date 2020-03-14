@@ -12,13 +12,14 @@ import MusicScroll.DatabaseUtils (getDBLyrics)
 import MusicScroll.TrackInfo (TrackInfo(..), cleanTrack)
 import MusicScroll.TagParsing
 import MusicScroll.AZLyrics (getLyricsFromWeb)
+import MusicScroll.UIEvent (UIEvent(GotLyric))
 
-lyricsThread :: TBQueue TrackInfo -> TBQueue (TrackInfo, Lyrics) -> IO a
+lyricsThread :: TBQueue TrackInfo -> TBQueue UIEvent -> IO a
 lyricsThread input output = forever $
   do trackinfo <- cleanTrack <$> atomically (readTBQueue input)
      lyrics <- getDBLyrics trackinfo <|> getLyricsFromWeb trackinfo
                <|> noLyricsMsg
-     atomically $ writeTBQueue output (trackinfo, lyrics)
+     atomically $ writeTBQueue output (GotLyric trackinfo lyrics)
 
 noLyricsMsg :: IO Lyrics
 noLyricsMsg = return "I failed at getting the lyrics!"
