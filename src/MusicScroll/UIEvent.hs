@@ -15,6 +15,8 @@ errorMsg :: ErrorCause -> Text
 errorMsg (NotOnDB NoArtist) =
   "No lyrics found by hash on the song file, try to suplement the song's\
   \ artist metadata to try to get it from the web."
+errorMsg (NotOnDB NoPath) =
+  "No song found, this is usually an intermediary state."
 errorMsg (NotOnDB NoTitle) =
   "No lyrics found by hash on the song file, try to suplement the song's\
   \ title metadata to try to get it from the web."

@@ -15,7 +15,6 @@ import Data.Functor (void)
 
 import MusicScroll.DatabaseUtils (getDBLyrics, getDBSong)
 import MusicScroll.TrackInfo
-import MusicScroll.TagParsing
 import MusicScroll.AZLyrics (getLyricsFromWeb)
 import MusicScroll.UIEvent
 
@@ -33,16 +32,16 @@ lyricsThread input output =
 seenSongsThread :: TBQueue TrackIdentifier -> TBQueue TrackIdentifier
                 -> StateT (Maybe TrackIdentifier) IO a
 seenSongsThread input output = forever $
-  do errOrTrack <- second cleanTrack <$>
+  do trackIdent <- second cleanTrack <$>
                    liftIO (atomically (readTBQueue input))
-     notSeen <- (/=) <$> get <*> pure (Just errOrTrack)
-     when notSeen $ do put (pure errOrTrack)
-                       liftIO . atomically $ writeTBQueue output errOrTrack
+     notSeen <- (/=) <$> get <*> pure (Just trackIdent)
+     when notSeen $ do put (pure trackIdent)
+                       liftIO . atomically $ writeTBQueue output trackIdent
 
 getLyricsThread :: TBQueue TrackIdentifier -> TBQueue UIEvent -> IO a
 getLyricsThread input output = forever $
-  do errOrTrack <- atomically (readTBQueue input)
-     event <- either caseMetadataErr caseTrack errOrTrack
+  do trackIdent <- atomically (readTBQueue input)
+     event <- either caseMetadataErr caseTrack trackIdent
      atomically $ writeTBQueue output event
 
 caseTrack :: TrackInfo -> IO UIEvent
@@ -50,7 +49,7 @@ caseTrack track =
   let tryGetLyrics = getDBLyrics (tUrl track) <|> getLyricsFromWeb track
   in (GotLyric track <$> tryGetLyrics) <|> pure (ErrorOn NoLyricsOnWeb)
 
-caseMetadataErr :: (SongFilePath, MetadataError) -> IO UIEvent
-caseMetadataErr (songPath, cause) =
+caseMetadataErr :: TrackByPath -> IO UIEvent
+caseMetadataErr (TrackByPath songPath cause) =
   ((uncurry GotLyric) <$> getDBSong songPath) <|>
   pure (ErrorOn (NotOnDB cause))

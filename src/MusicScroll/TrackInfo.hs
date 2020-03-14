@@ -1,10 +1,11 @@
 {-# language OverloadedStrings, NamedFieldPuns #-}
 module MusicScroll.TrackInfo
   ( TrackInfo(..)
+  , TrackByPath(..)
+  , TrackIdentifier
   , TrackInfoError(..)
   , MetadataError(..)
   , SongFilePath
-  , TrackIdentifier
   , tryGetInfo
   , cleanTrack
   ) where
@@ -17,10 +18,10 @@ import           Data.Bifunctor (first)
 import           Data.Function ((&))
 import           Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
-import           Data.Maybe (fromJust)
 import           Data.Text (Text)
 import qualified Data.Text as T
 import           Data.Char (isAlpha)
+import           Data.Either (fromLeft)
 
 import           MusicScroll.DBusNames
 
@@ -30,17 +31,22 @@ data TrackInfo = TrackInfo
   , tUrl    :: SongFilePath
   } deriving (Eq, Show) -- TODO: better eq instance
 
-data MetadataError = NoArtist | NoTitle deriving (Eq)
+data TrackByPath = TrackByPath
+  { tPath :: SongFilePath
+  , error :: MetadataError -- The WHY this is not a TrackInfo
+  } deriving (Eq, Show)
+
+data MetadataError = NoArtist | NoTitle | NoPath deriving (Eq, Show)
 type SongFilePath = FilePath
-type TrackIdentifier = Either (SongFilePath, MetadataError) TrackInfo
+type TrackIdentifier = Either TrackByPath TrackInfo
 
 data TrackInfoError = NoMusicClient MethodError
-                    | NoMetadata (SongFilePath, MetadataError)
+                    | NoMetadata MetadataError
 
 -- An exception here means that either there is not a music player
 -- running or what it is running it's not a song. Either way we should
 -- wait for a change on the dbus connection to try again.
-tryGetInfo :: Client -> BusName -> IO (Either TrackInfoError TrackInfo)
+tryGetInfo :: Client -> BusName -> IO (Either TrackInfoError TrackIdentifier)
 tryGetInfo client busName = do
     metadata <- getPropertyValue client
                   (methodCall mediaObject mediaInterface "Metadata") {
@@ -48,21 +54,28 @@ tryGetInfo client busName = do
                   } & fmap (first NoMusicClient)
     return . join $ obtainTrackInfo <$> metadata
 
-obtainTrackInfo :: Map Text Variant -> Either TrackInfoError TrackInfo
+obtainTrackInfo :: Map Text Variant -> Either TrackInfoError TrackIdentifier
 obtainTrackInfo metadata =
   let lookup :: IsVariant a => MetadataError -> Text -> Either MetadataError a
       lookup cause name =
         let mvalue = Map.lookup name metadata >>= fromVariant
         in maybe (Left cause) Right mvalue
 
-      songPath :: SongFilePath
-      songPath = fromJust $ Map.lookup "xesam:url" metadata >>= fromVariant
-
-      track = TrackInfo <$> lookup NoTitle "xesam:title"
+      trackInfo :: Either MetadataError TrackInfo
+      trackInfo = TrackInfo <$> lookup NoTitle "xesam:title"
           <*> xesamArtistFix (lookup NoArtist "xesam:artist")
                              (lookup NoArtist "xesam:artist")
-          <*> pure songPath
-  in first (\cause -> NoMetadata (songPath, cause)) track
+          <*> lookup NoPath "xesam:url"
+
+      trackByPath :: Either MetadataError TrackByPath
+      trackByPath = TrackByPath <$> lookup NoPath "xesam:url"
+          <*> pure (fromLeft undefined trackInfo) -- safe
+
+      trackInfo', trackByPath' :: Either MetadataError TrackIdentifier
+      trackInfo' = fmap Right trackInfo
+      trackByPath' = fmap Left trackByPath
+
+  in first NoMetadata $ trackInfo' <> trackByPath'
 
 -- xesam:artist by definition should return a `[Text]`, but in practice
 -- it returns a `Text`. This function makes it always return `Text`.
