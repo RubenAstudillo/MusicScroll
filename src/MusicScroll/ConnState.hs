@@ -1,7 +1,6 @@
 module MusicScroll.ConnState
   ( ConnState(..)
   , newConnState
-  , setSong
   , setBus
   ) where
 
@@ -15,17 +14,13 @@ import MusicScroll.DBusNames
 data ConnState = ConnState
   { cClient        :: Client
   , cBusActive     :: BusName
-  , cOutTrackChan  :: TBQueue TrackInfo
+  , cOutTrackChan  :: TBQueue TrackIdentifier
   , cOutEventChan  :: TBQueue UIEvent
-  , cLastSentTrack :: Maybe TrackInfo
   }
 
-newConnState :: TBQueue TrackInfo -> TBQueue UIEvent -> Client -> ConnState
-newConnState trackChan eventChan c =
-  ConnState c vlcBus trackChan eventChan Nothing
+newConnState :: TBQueue TrackIdentifier -> TBQueue UIEvent
+             -> Client -> ConnState
+newConnState trackCh eventCh c = ConnState c vlcBus trackCh eventCh
 
 setBus :: BusName -> ConnState -> ConnState
 setBus newBus conn = conn { cBusActive = newBus }
-
-setSong :: TrackInfo -> ConnState -> ConnState
-setSong track s = s { cLastSentTrack = pure track }

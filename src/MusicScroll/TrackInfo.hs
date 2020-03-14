@@ -1,9 +1,11 @@
 {-# language OverloadedStrings, NamedFieldPuns #-}
 module MusicScroll.TrackInfo
-  ( tryGetInfo
-  , TrackInfo(..)
+  ( TrackInfo(..)
   , TrackInfoError(..)
   , MetadataError(..)
+  , SongFilePath
+  , TrackIdentifier
+  , tryGetInfo
   , cleanTrack
   ) where
 
@@ -15,6 +17,7 @@ import           Data.Bifunctor (first)
 import           Data.Function ((&))
 import           Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
+import           Data.Maybe (fromJust)
 import           Data.Text (Text)
 import qualified Data.Text as T
 import           Data.Char (isAlpha)
@@ -24,11 +27,15 @@ import           MusicScroll.DBusNames
 data TrackInfo = TrackInfo
   { tTitle  :: Text
   , tArtist :: Text -- xesam:artist is weird
-  , tUrl    :: FilePath
+  , tUrl    :: SongFilePath
   } deriving (Eq, Show) -- TODO: better eq instance
 
-data MetadataError = NoArtist | NoTitle
-data TrackInfoError = NoMusicClient MethodError | NoMetadata MetadataError
+data MetadataError = NoArtist | NoTitle deriving (Eq)
+type SongFilePath = FilePath
+type TrackIdentifier = Either (SongFilePath, MetadataError) TrackInfo
+
+data TrackInfoError = NoMusicClient MethodError
+                    | NoMetadata (SongFilePath, MetadataError)
 
 -- An exception here means that either there is not a music player
 -- running or what it is running it's not a song. Either way we should
@@ -48,11 +55,14 @@ obtainTrackInfo metadata =
         let mvalue = Map.lookup name metadata >>= fromVariant
         in maybe (Left cause) Right mvalue
 
+      songPath :: SongFilePath
+      songPath = fromJust $ Map.lookup "xesam:url" metadata >>= fromVariant
+
       track = TrackInfo <$> lookup NoTitle "xesam:title"
           <*> xesamArtistFix (lookup NoArtist "xesam:artist")
                              (lookup NoArtist "xesam:artist")
-          <*> lookup NoTitle "xesam:url" -- impossible
-  in first NoMetadata track
+          <*> pure songPath
+  in first (\cause -> NoMetadata (songPath, cause)) track
 
 -- xesam:artist by definition should return a `[Text]`, but in practice
 -- it returns a `Text`. This function makes it always return `Text`.

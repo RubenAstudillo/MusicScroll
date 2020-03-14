@@ -2,6 +2,7 @@
       RecordWildCards #-}
 module MusicScroll.DatabaseUtils
   ( getDBLyrics
+  , getDBSong
   , insertDBLyrics
   , getDBPath
   ) where
@@ -20,19 +21,25 @@ import           System.Environment.XDG.BaseDir (getUserCacheDir)
 import           Data.Coerce
 import           System.Directory (createDirectory)
 
-import           MusicScroll.TrackInfo (TrackInfo(..))
+import           MusicScroll.TrackInfo (TrackInfo(..), SongFilePath)
 import           MusicScroll.TagParsing (Lyrics(..))
 
-getDBLyrics :: TrackInfo -> IO Lyrics
-getDBLyrics track =
-  do songHash <- fileHash (tUrl track)
+getDBLyrics :: SongFilePath -> IO Lyrics
+getDBLyrics songUrl = snd <$> getDBSong songUrl
+
+getDBSong :: SongFilePath -> IO (TrackInfo, Lyrics)
+getDBSong songUrl =
+  do songHash <- fileHash songUrl
      dbPath   <- getDBPath
      bracket (open dbPath) close $ \conn ->
        do execute_ conn sqlDBCreate
-          lyricsRaw <- query conn sqlExtractLyrics (Only songHash)
-          case (lyricsRaw :: [ Only Text ]) of
+          songRaw <- query conn sqlExtractSong (Only songHash)
+          case (songRaw :: [ (Text, Text, Text) ]) of
             [] -> empty
-            (Only realLyrics):_ -> return (coerce realLyrics)
+            (title, artist, lyrics):_ ->
+              let track = TrackInfo title artist songUrl
+              in return (track, coerce lyrics)
+
 
 insertDBLyrics :: TrackInfo -> Lyrics -> IO ()
 insertDBLyrics (TrackInfo {..}) lyrics =
@@ -61,7 +68,7 @@ fileHash fp = withFile fp ReadMode $ \hdl ->
                        looper newCtx
   in looper (hashInit @SHA1)
 
-sqlDBCreate, sqlInsertSong, sqlExtractLyrics :: Query
+sqlDBCreate, sqlInsertSong, sqlExtractSong :: Query
 sqlDBCreate =
   "create table if not exists MusicScrollTable(\n\
   \  songHash text primary key,\n\
@@ -71,5 +78,5 @@ sqlDBCreate =
 
 sqlInsertSong = "insert into MusicScrollTable values (?, ?, ?, ?);"
 
-sqlExtractLyrics =
-  "select lyrics from MusicScrollTable where songHash == ?;"
+sqlExtractSong =
+  "select title, artist, lyrics from MusicScrollTable where songHash == ?;"

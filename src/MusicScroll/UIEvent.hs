@@ -9,9 +9,13 @@ import MusicScroll.TagParsing (Lyrics(..))
 data UIEvent = GotLyric TrackInfo Lyrics
              | ErrorOn ErrorCause
 
-data ErrorCause = ENoMetadata MetadataError | NoLyricsOnWeb
+data ErrorCause = NotOnDB MetadataError | NoLyricsOnWeb
 
 errorMsg :: ErrorCause -> Text
-errorMsg (ENoMetadata NoArtist) = "No artist on song's metadata, please suplement info."
-errorMsg (ENoMetadata NoTitle) = "No title on song's metadata, please suplement info."
+errorMsg (NotOnDB NoArtist) =
+  "No lyrics found by hash on the song file, try to suplement the song's\
+  \ artist metadata to try to get it from the web."
+errorMsg (NotOnDB NoTitle) =
+  "No lyrics found by hash on the song file, try to suplement the song's\
+  \ title metadata to try to get it from the web."
 errorMsg NoLyricsOnWeb = "Lyrics provider didn't have that song."
