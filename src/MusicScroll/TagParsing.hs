@@ -1,14 +1,12 @@
-{-# language OverloadedStrings, GeneralizedNewtypeDeriving #-}
+{-# language OverloadedStrings #-}
 module MusicScroll.TagParsing (Lyrics(..), extractLyricsFromPage) where
 
 import qualified Data.Char as C
 import           Data.Text (Text)
 import           Data.Text as T hiding (filter, tail, map)
 import           Text.HTML.TagSoup
-import           Data.String (IsString)
 
 newtype Lyrics = Lyrics Text
-  deriving (IsString)
 
 extractLyricsFromPage :: Text -> Lyrics
 extractLyricsFromPage page =

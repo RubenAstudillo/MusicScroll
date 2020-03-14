@@ -1,5 +1,4 @@
-{-# language OverloadedStrings, DataKinds, NamedFieldPuns,
-             TypeApplications #-}
+{-# language OverloadedStrings, DataKinds, NamedFieldPuns, TypeApplications #-}
 module MusicScroll.AZLyrics (getLyricsFromWeb) where
 
 import Control.Exception (try, SomeException)

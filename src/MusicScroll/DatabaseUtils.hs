@@ -1,5 +1,4 @@
-{-# language OverloadedStrings, TypeApplications, ScopedTypeVariables,
-      RecordWildCards #-}
+{-# language OverloadedStrings, TypeApplications, RecordWildCards #-}
 module MusicScroll.DatabaseUtils
   ( getDBLyrics
   , getDBSong
