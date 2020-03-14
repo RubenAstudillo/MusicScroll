@@ -7,7 +7,7 @@ import Control.Concurrent.STM.TBQueue (newTBQueue)
 import Numeric.Natural (Natural)
 import Data.Functor (void)
 
-import MusicScroll.AZLyrics
+import MusicScroll.LyricsPipeline
 import MusicScroll.MPRIS
 import MusicScroll.UI
 

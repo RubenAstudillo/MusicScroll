@@ -1,19 +1,23 @@
-{-# language OverloadedStrings #-}
-module MusicScroll.TagParsing (extractLyricsFromPage) where
+{-# language OverloadedStrings, GeneralizedNewtypeDeriving #-}
+module MusicScroll.TagParsing (Lyrics(..), extractLyricsFromPage) where
 
 import qualified Data.Char as C
 import           Data.Text (Text)
 import           Data.Text as T hiding (filter, tail, map)
 import           Text.HTML.TagSoup
+import           Data.String (IsString)
 
-extractLyricsFromPage :: Text -> [Text]
+newtype Lyrics = Lyrics Text
+  deriving (IsString)
+
+extractLyricsFromPage :: Text -> Lyrics
 extractLyricsFromPage page =
   let stream = parseTags page
       pass1  = flip filter stream
         (\t -> (not (isScript t)) && noEmptyText t && validTags t)
       stream2 = zip3 pass1 (tail pass1) (tail (tail pass1))
       pass2   = map (\(t, _, _) -> t) $ filter isStrophe stream2
-  in cleanOut pass2
+  in Lyrics . T.unlines . cleanOut $ pass2
 
 -- Pass 1
 validTags, noEmptyText :: Tag Text -> Bool

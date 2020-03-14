@@ -6,6 +6,7 @@ module MusicScroll.TrackInfo
   , cleanTrack
   ) where
 
+import           Prelude hiding (readFile)
 import           Control.Monad (join)
 import           DBus
 import           DBus.Client
@@ -22,6 +23,7 @@ import           MusicScroll.DBusNames
 data TrackInfo = TrackInfo
   { tTitle  :: Text
   , tArtist :: Text -- xesam:artist is weird
+  , tUrl    :: FilePath
   } deriving (Eq, Show) -- TODO: better eq instance
 
 data TrackInfoError = NoMusicClient MethodError | NoMetadata
@@ -40,8 +42,9 @@ tryGetInfo client busName = do
 obtainTrackInfo :: Map Text Variant -> Either TrackInfoError TrackInfo
 obtainTrackInfo metadata =
   let lookup name = Map.lookup name metadata >>= fromVariant
-      track = TrackInfo <$> lookup "xesam:title" <*>
-                xesamArtistFix (lookup "xesam:artist") (lookup "xesam:artist")
+      track = TrackInfo <$> lookup "xesam:title"
+          <*> xesamArtistFix (lookup "xesam:artist") (lookup "xesam:artist")
+          <*> lookup "xesam:url"
   in maybe (Left NoMetadata) pure track
 
 -- xesam:artist by definition should return a `[Text]`, but in practice

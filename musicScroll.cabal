@@ -30,6 +30,8 @@ source-repository head
 
 library
   default-language:    Haskell2010
+  ghc-options:         -optl-fuse-ld=gold
+  ld-options:          -fuse-ld=gold
   hs-source-dirs:      src
   build-depends:       base <4.13 ,
                        containers,
@@ -43,16 +45,24 @@ library
                        stm,
                        async,
                        req,
-                       tagsoup
+                       tagsoup,
+                       sqlite-simple,
+                       xdg-basedir,
+                       cryptonite,
+                       bytestring,
+                       directory,
+                       deepseq
   exposed-modules:     MusicScroll.UI,
                        MusicScroll.RealMain
                        MusicScroll.MPRIS
                        MusicScroll.AZLyrics
+                       MusicScroll.LyricsPipeline
                        MusicScroll.TagParsing
                        MusicScroll.TrackInfo
                        MusicScroll.DBusNames
                        MusicScroll.DBusSignals
                        MusicScroll.ConnState
+                       MusicScroll.DatabaseUtils
   other-modules:       Paths_musicScroll
 
 -- test-suite playground
@@ -71,4 +81,5 @@ executable music-scroll
   hs-source-dirs:      app
   default-language:    Haskell2010
   pkgconfig-depends:   gtk+-3.0
-  ghc-options: -Wall -rtsopts -threaded
+  ghc-options: -Wall -rtsopts -threaded -optl-fuse-ld=gold
+  ld-options: -fuse-ld=gold

@@ -14,10 +14,11 @@ import           Data.Functor (void)
 import           Data.GI.Gtk.Threading
                      (setCurrentThreadAsGUIThread, postGUISync)
 import           Data.Maybe (fromJust)
-import           Data.Text (Text)
 import           Data.Text as T
 import qualified GI.Gtk as Gtk
+
 import           MusicScroll.TrackInfo (TrackInfo(..))
+import           MusicScroll.TagParsing (Lyrics(..))
 
 import           Paths_musicScroll
 
@@ -42,7 +43,7 @@ getGtkScene = do
              <*> getWidget Gtk.Label "artistLabel"
              <*> getWidget Gtk.TextView "lyricsTextView"
 
-setupUIThread :: TBQueue (TrackInfo, [Text]) -> IO ()
+setupUIThread :: TBQueue (TrackInfo, Lyrics) -> IO ()
 setupUIThread trackUpdates =
   do appCtxMVar <- atomically newEmptyTMVar
      withAsyncBound (uiThread appCtxMVar) $ \a1 ->
@@ -61,13 +62,12 @@ uiThread ctxMVar = do
   Gtk.main
 
 ---
-uiUpdateThread :: TBQueue (TrackInfo, [Text]) -> TMVar AppContext -> IO a
+uiUpdateThread :: TBQueue (TrackInfo, Lyrics) -> TMVar AppContext -> IO a
 uiUpdateThread input ctxMVar = do
   AppContext {..} <- atomically (takeTMVar ctxMVar)
   forever $
-      do (track, lyrics) <- atomically (readTBQueue input)
-         let !singleLyrics  = T.unlines lyrics
-             !bytesToUpdate = fromIntegral $ T.length singleLyrics
+      do (track, Lyrics singleLyrics) <- atomically (readTBQueue input)
+         let !bytesToUpdate = fromIntegral $ T.length singleLyrics
          postGUISync $ do
            Gtk.labelSetText titleLabel (tTitle track)
            Gtk.labelSetText artistLabel (tArtist track)
