@@ -3,7 +3,7 @@ module MusicScroll.LyricsPipeline (lyricsThread, sizeOfQueue) where
 -- | Discriminate between getting the lyrics from SQLite or the web.
 
 import Control.Concurrent.Async (withAsync, waitAnyCancel)
-import Control.Concurrent.STM (atomically)
+import Control.Concurrent.STM (atomically, orElse)
 import Control.Concurrent.STM.TBQueue ( TBQueue, readTBQueue, writeTBQueue,
                                         newTBQueue )
 import Control.Applicative (Alternative(..))
@@ -13,31 +13,55 @@ import Control.Monad (forever, when)
 import Data.Bifunctor (second)
 import Numeric.Natural (Natural)
 import Data.Functor (void)
+import Data.Maybe (isJust)
 
 import MusicScroll.DatabaseUtils (getDBLyrics, getDBSong)
 import MusicScroll.TrackInfo
+import MusicScroll.TrackSuplement
 import MusicScroll.AZLyrics (getLyricsFromWeb)
 import MusicScroll.UIEvent
 
 sizeOfQueue :: Natural
 sizeOfQueue = 5
 
-lyricsThread :: TBQueue TrackIdentifier -> TBQueue UIEvent -> IO ()
-lyricsThread input output =
+lyricsThread :: TBQueue TrackIdentifier -> TBQueue TrackSuplement
+             -> TBQueue UIEvent -> IO ()
+lyricsThread inputIdent inputSupl output =
   do songFilterChan <- atomically (newTBQueue sizeOfQueue)
-     let seenSongThread' = seenSongsThread input songFilterChan
+     let seenSongThread' = seenSongsThread inputIdent inputSupl songFilterChan
      withAsync (evalStateT seenSongThread' Nothing) $ \seenSongsA ->
        withAsync (getLyricsThread songFilterChan output) $ \getLyricsA ->
          void $ waitAnyCancel [seenSongsA, getLyricsA]
 
-seenSongsThread :: TBQueue TrackIdentifier -> TBQueue TrackIdentifier
-                -> StateT (Maybe TrackIdentifier) IO a
-seenSongsThread input output = forever $
-  do trackIdent <- second cleanTrack <$>
-                   liftIO (atomically (readTBQueue input))
-     notSeen <- (/=) <$> get <*> pure (Just trackIdent)
-     when notSeen $ do put (pure trackIdent)
-                       liftIO . atomically $ writeTBQueue output trackIdent
+-- | This thread works as a model of the MVC pattern. The UI
+--   communicates its callbacks to here. The Dbus thread sends what it
+--   sees here to no repeat songs.
+seenSongsThread :: TBQueue TrackIdentifier -> TBQueue TrackSuplement
+                -> TBQueue TrackIdentifier -> StateT (Maybe TrackIdentifier) IO a
+seenSongsThread inputIdent inputSupl output = forever $
+  do mTrackIdent <- mergeQueue inputIdent inputSupl
+     notSeen <- (/=) <$> get <*> pure mTrackIdent
+     when (notSeen && isJust mTrackIdent) $ do
+       let Just trackIdent = mTrackIdent
+       put mTrackIdent
+       liftIO . atomically $ writeTBQueue output trackIdent
+
+mergeQueue :: TBQueue TrackIdentifier -> TBQueue TrackSuplement
+           -> StateT (Maybe TrackIdentifier) IO (Maybe TrackIdentifier)
+mergeQueue inputIdent inputSupl =
+  do let cleanInputIdent = second cleanTrack <$> readTBQueue inputIdent
+         mergedInputChan = (Left <$> cleanInputIdent) `orElse`
+                           (Right <$> readTBQueue inputSupl)
+     mOldTrack   <- get
+     mergedInput <- liftIO $ atomically mergedInputChan
+
+     let suplement' :: TrackSuplement -> Maybe TrackIdentifier
+         suplement' supl = (Right . suplement supl) <$> mOldTrack
+         newTrack :: Maybe TrackIdentifier
+         newTrack = either Just suplement' mergedInput
+
+     pure newTrack
+
 
 getLyricsThread :: TBQueue TrackIdentifier -> TBQueue UIEvent -> IO a
 getLyricsThread input output = forever $

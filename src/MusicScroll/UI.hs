@@ -4,7 +4,7 @@ module MusicScroll.UI (setupUIThread) where
 import           Control.Concurrent.Async
                      (withAsyncBound, waitAnyCancel, withAsync)
 import           Control.Concurrent.STM (atomically)
-import           Control.Concurrent.STM.TBQueue (TBQueue, readTBQueue)
+import           Control.Concurrent.STM.TBQueue (TBQueue, readTBQueue, writeTBQueue)
 import           Control.Concurrent.STM.TMVar
                      (TMVar, newEmptyTMVar, takeTMVar, putTMVar)
 import           Control.Exception (throwIO, AsyncException(UserInterrupt))
@@ -18,6 +18,7 @@ import qualified GI.Gtk as Gtk
 
 import           MusicScroll.TrackInfo (TrackInfo(..))
 import           MusicScroll.TagParsing (Lyrics(..))
+import           MusicScroll.TrackSuplement
 import           MusicScroll.UIEvent
 
 import           Paths_musicScroll
@@ -53,21 +54,23 @@ getGtkScene = do
              <*> getWidget Gtk.Button "suplementAcceptButton"
              <*> getWidget Gtk.Button "suplementResetButton"
 
-setupUIThread :: TBQueue UIEvent -> IO ()
-setupUIThread events =
+setupUIThread :: TBQueue UIEvent -> TBQueue TrackSuplement -> IO ()
+setupUIThread events outSupl =
   do appCtxMVar <- atomically newEmptyTMVar
-     withAsyncBound (uiThread appCtxMVar) $ \a1 ->
+     withAsyncBound (uiThread appCtxMVar outSupl) $ \a1 ->
        withAsync (uiUpdateThread events appCtxMVar) $ \a2 ->
          void (waitAnyCancel [a1, a2]) >> throwIO UserInterrupt
 
-uiThread :: TMVar AppContext -> IO ()
-uiThread ctxMVar = do
+uiThread :: TMVar AppContext -> TBQueue TrackSuplement -> IO ()
+uiThread ctxMVar outSupl = do
   setCurrentThreadAsGUIThread
   _ <- Gtk.init Nothing
   appCtx@(AppContext {..}) <- getGtkScene
   atomically (putTMVar ctxMVar appCtx)
   Gtk.labelSetText titleLabel "MusicScroll"
   Gtk.widgetShowAll mainWindow
+  _ <- Gtk.onButtonClicked suplementAcceptButton $
+         sendSuplementalInfo appCtx outSupl
   _ <- Gtk.onWidgetDestroy mainWindow Gtk.mainQuit
   Gtk.main
 
@@ -98,3 +101,13 @@ updateErrorCause (AppContext {..}) cause = postGUISync $
      lyricsBuffer <- Gtk.textViewGetBuffer lyricsTextView
      Gtk.textBufferSetText lyricsBuffer mempty 0
      Gtk.labelSetText errorLabel (errorMsg cause)
+
+sendSuplementalInfo :: AppContext -> TBQueue TrackSuplement -> IO ()
+sendSuplementalInfo (AppContext {..}) suplChan =
+  do trackSupl <- TrackSuplement <$> getTextOnEntry titleSuplementEntry
+                                 <*> getTextOnEntry artistSuplementEntry
+     atomically (writeTBQueue suplChan trackSupl)
+
+getTextOnEntry :: Gtk.Entry -> IO Text
+getTextOnEntry entry =
+  Gtk.entryGetBuffer entry >>= Gtk.entryBufferGetText

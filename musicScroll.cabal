@@ -64,6 +64,7 @@ library
                        MusicScroll.DBusSignals
                        MusicScroll.ConnState
                        MusicScroll.DatabaseUtils
+                       MusicScroll.TrackSuplement
   other-modules:       Paths_musicScroll
 
 -- test-suite playground

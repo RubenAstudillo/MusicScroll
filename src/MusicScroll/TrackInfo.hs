@@ -10,7 +10,7 @@ module MusicScroll.TrackInfo
   , cleanTrack
   ) where
 
-import           Prelude hiding (readFile)
+import           Prelude hiding (readFile, lookup)
 import           Control.Monad (join)
 import           DBus
 import           DBus.Client
@@ -32,8 +32,8 @@ data TrackInfo = TrackInfo
   } deriving (Eq, Show) -- TODO: better eq instance
 
 data TrackByPath = TrackByPath
-  { tPath :: SongFilePath
-  , error :: MetadataError -- The WHY this is not a TrackInfo
+  { tpPath :: SongFilePath
+  , tpError :: MetadataError -- The WHY this is not a TrackInfo
   } deriving (Eq, Show)
 
 data MetadataError = NoArtist | NoTitle | NoPath deriving (Eq, Show)
