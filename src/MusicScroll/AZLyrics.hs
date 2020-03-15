@@ -15,7 +15,7 @@ import MusicScroll.DatabaseUtils (insertDBLyrics)
 
 getLyricsFromWeb :: TrackInfo -> IO Lyrics
 getLyricsFromWeb track@(TrackInfo {tArtist, tTitle}) =
-  do let songUrl = url tArtist tTitle
+  do let songUrl = toUrl tArtist tTitle
      resp <- try @SomeException (getPage songUrl)
      let notValid = either (const True)
                       ((/= 200) . responseStatusCode) resp
@@ -29,8 +29,8 @@ getPage :: Url 'Https -> IO BsResponse
 getPage url = runReq defaultHttpConfig $
   req GET url NoReqBody bsResponse mempty
 
-url :: Text -> Text -> Url 'Https
-url artist song =
+toUrl :: Text -> Text -> Url 'Https
+toUrl artist song =
   let base :: Url 'Https
       base = https "www.azlyrics.com"
 

@@ -72,9 +72,9 @@ getLyricsThread input output = forever $
 caseByInfo :: TrackInfo -> IO UIEvent
 caseByInfo track =
   let tryGetLyrics = getDBLyrics (tUrl track) <|> getLyricsFromWeb track
-  in (GotLyric track <$> tryGetLyrics) <|> pure (ErrorOn NoLyricsOnWeb)
+  in (GotLyric track <$> tryGetLyrics) <|> pure (ErrorOn (NoLyricsOnWeb track))
 
 caseByPath :: TrackByPath -> IO UIEvent
-caseByPath (TrackByPath songPath cause) =
-  ((uncurry GotLyric) <$> getDBSong songPath) <|>
-  pure (ErrorOn (NotOnDB cause))
+caseByPath track =
+  ((uncurry GotLyric) <$> getDBSong (tpPath track)) <|>
+  pure (ErrorOn (NotOnDB track))
