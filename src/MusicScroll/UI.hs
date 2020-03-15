@@ -38,7 +38,7 @@ getGtkScene = do
              <*> getWidget Gtk.Entry "titleSuplementEntry"
              <*> getWidget Gtk.Entry "artistSuplementEntry"
              <*> getWidget Gtk.Button "suplementAcceptButton"
-             <*> getWidget Gtk.Button "suplementResetButton"
+             <*> getWidget Gtk.CheckButton "keepArtistNameCheck"
 
 setupUIThread :: TBQueue UIEvent -> TBQueue TrackSuplement -> IO ()
 setupUIThread events outSupl =

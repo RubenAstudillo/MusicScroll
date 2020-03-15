@@ -1,6 +1,7 @@
 {-# language OverloadedStrings, RecordWildCards, BangPatterns #-}
 module MusicScroll.UIEvent where
 
+import           Control.Monad (unless)
 import           Data.Maybe (isNothing)
 import           Data.Text (Text)
 import           Data.Text as T
@@ -24,7 +25,7 @@ data AppContext = AppContext
   , titleSuplementEntry   :: Gtk.Entry
   , artistSuplementEntry  :: Gtk.Entry
   , suplementAcceptButton :: Gtk.Button
-  , suplementResetButton  :: Gtk.Button
+  , keepArtistNameCheck   :: Gtk.CheckButton
   }
 
 errorMsg :: ErrorCause -> Text
@@ -70,4 +71,6 @@ updateErrorCause ctx@(AppContext {..}) cause = postGUISync $
 updateSuplementalGuess :: AppContext -> (Text, Text) -> IO ()
 updateSuplementalGuess (AppContext {..}) (guessTitle, guessArtist) =
   do Gtk.entrySetText titleSuplementEntry guessTitle
-     Gtk.entrySetText artistSuplementEntry guessArtist
+     shouldMaintainArtistSupl <- Gtk.getToggleButtonActive keepArtistNameCheck
+     unless shouldMaintainArtistSupl $
+       Gtk.entrySetText artistSuplementEntry guessArtist
