@@ -60,7 +60,7 @@ obtainTrackInfo metadata =
 
       mTitle  = lookup "xesam:title"
       mArtist = xesamArtistFix (lookup "xesam:artist") (lookup "xesam:artist")
-      mUrl    = lookup "xesam:url"
+      mUrl    = (T.unpack . T.replace "file://" "" . T.pack) <$> lookup "xesam:url"
 
       trackInfo :: Maybe TrackInfo
       trackInfo = TrackInfo <$> mTitle <*> mArtist <*> mUrl
