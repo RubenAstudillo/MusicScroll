@@ -60,7 +60,7 @@ obtainTrackInfo metadata =
 
       mTitle  = lookup "xesam:title"
       mArtist = xesamArtistFix (lookup "xesam:artist") (lookup "xesam:artist")
-      mUrl    = (T.unpack . T.replace "file://" "" . T.pack) <$> lookup "xesam:url"
+      mUrl    = vlcFix <$> lookup "xesam:url"
 
       trackInfo :: Maybe TrackInfo
       trackInfo = TrackInfo <$> mTitle <*> mArtist <*> mUrl
@@ -96,3 +96,6 @@ cleanTitle title0 =
 
 musicFormats :: [Text]
 musicFormats = ["mp3", "flac", "ogg", "wav", "acc", "opus", "webm"]
+
+vlcFix :: SongFilePath -> SongFilePath
+vlcFix = T.unpack . T.replace "%20" " " . T.replace "file://" "" . T.pack
