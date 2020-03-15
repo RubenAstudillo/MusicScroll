@@ -10,7 +10,6 @@ import Control.Applicative (Alternative(..))
 import Control.Monad.Trans.State (StateT, get, put, evalStateT)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad (forever, when)
-import Data.Bifunctor (second)
 import Numeric.Natural (Natural)
 import Data.Functor (void)
 import Data.Maybe (isJust)
@@ -49,7 +48,7 @@ seenSongsThread inputIdent inputSupl output = forever $
 mergeQueue :: TBQueue TrackIdentifier -> TBQueue TrackSuplement
            -> StateT (Maybe TrackIdentifier) IO (Maybe TrackIdentifier)
 mergeQueue inputIdent inputSupl =
-  do let cleanInputIdent = second cleanTrack <$> readTBQueue inputIdent
+  do let cleanInputIdent = cleanTrack <$> readTBQueue inputIdent
          mergedInputChan = (Left <$> cleanInputIdent) `orElse`
                            (Right <$> readTBQueue inputSupl)
      mOldTrack   <- get

@@ -14,7 +14,7 @@ import           Control.Applicative (Alternative(..))
 import           Control.Monad (join)
 import           DBus
 import           DBus.Client
-import           Data.Bifunctor (first)
+import           Data.Bifunctor (first, bimap)
 import           Data.Function ((&))
 import           Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
@@ -79,10 +79,15 @@ xesamArtistFix (Just title) _ = pure title
 xesamArtistFix Nothing (Just arr) | (title : _) <- arr = pure title
 xesamArtistFix _ _ = Nothing
 
-cleanTrack :: TrackInfo -> TrackInfo
-cleanTrack t@(TrackInfo {tTitle}) = t { tTitle = cleanTitle tTitle }
+cleanTrack :: TrackIdentifier -> TrackIdentifier
+cleanTrack = bimap
+  (\byPath -> byPath { tpTitle = cleanTitle <$> (tpTitle byPath) })
+  (\track -> track { tTitle = cleanTitle (tTitle track) })
 
--- Remove .mp3 and numbers from the title.
+-- | This functions does two main things:
+--     1. Remove format at the end, ie .mp3, .opus etc.
+--     2. Remove the leading order separators, ie "05 - song name" ->
+--        "song name"
 cleanTitle :: Text -> Text
 cleanTitle title0 =
   let (title1, format) = first T.init $ T.breakOnEnd "." title0
