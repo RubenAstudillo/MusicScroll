@@ -1,5 +1,11 @@
 # Revision history for music-scroll
 
+## 0.2.0.0
+
+* SQLite cache
+* Suplementing the best effort info on a file to get the song.
+* Better state/error reporting.
+
 ## 0.1.2.0 -- 2020-02-01
 
 * Allow other clients, currently just VLC & SMPlayer. Now is easier to
