@@ -13,7 +13,8 @@ realMain :: IO ()
 realMain =
   do dbusSongChan <- atomically (newTBQueue sizeOfQueue)
      eventChan    <- atomically (newTBQueue sizeOfQueue)
-     withAsync (setupUIThread eventChan) $ \setupUIA ->
-       withAsync (lyricsThread dbusSongChan eventChan) $ \lyricsA ->
+     suplChan     <- atomically (newTBQueue sizeOfQueue)
+     withAsync (setupUIThread eventChan suplChan) $ \setupUIA ->
+       withAsync (lyricsThread dbusSongChan suplChan eventChan) $ \lyricsA ->
          withAsync (dbusThread dbusSongChan eventChan) $ \dbusA ->
            void $ waitAnyCancel [setupUIA, lyricsA, dbusA]

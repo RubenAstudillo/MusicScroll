@@ -25,8 +25,7 @@ dbusThread trackChan eventChan = bracket connectSession disconnect
                 (,) <$> gets cClient <*> gets cBusActive
       case mtrack of
         Left (NoMusicClient _) -> changeMusicClient
-        Left (NoMetadata cause) -> reportErrorOnUI cause
-                                   *> waitForChange mediaPropChangeRule
+        Left NoSong -> reportErrorOnUI *> waitForChange mediaPropChangeRule
         (Right trackIdent) -> sendToLyricsPipeline trackIdent
                               *> waitForChange mediaPropChangeRule
 
@@ -35,8 +34,8 @@ sendToLyricsPipeline trackIdent =
   do outTrackChan <- gets cOutTrackChan
      liftIO . atomically $ writeTBQueue outTrackChan trackIdent
 
-reportErrorOnUI :: MetadataError -> StateT ConnState IO ()
-reportErrorOnUI cause =
+reportErrorOnUI :: StateT ConnState IO ()
+reportErrorOnUI =
   do eventChan <- gets cOutEventChan
-     let wrapedCause = ErrorOn (NotOnDB cause)
+     let wrapedCause = ErrorOn (ENoSong)
      liftIO . atomically $ writeTBQueue eventChan wrapedCause

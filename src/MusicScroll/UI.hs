@@ -1,40 +1,31 @@
-{-# language RecordWildCards, OverloadedStrings, BangPatterns #-}
+{-# language RecordWildCards, OverloadedStrings #-}
 module MusicScroll.UI (setupUIThread) where
 
 import           Control.Concurrent.Async
                      (withAsyncBound, waitAnyCancel, withAsync)
 import           Control.Concurrent.STM (atomically)
-import           Control.Concurrent.STM.TBQueue (TBQueue, readTBQueue)
+import           Control.Concurrent.STM.TBQueue (TBQueue, readTBQueue, writeTBQueue)
 import           Control.Concurrent.STM.TMVar
                      (TMVar, newEmptyTMVar, takeTMVar, putTMVar)
 import           Control.Exception (throwIO, AsyncException(UserInterrupt))
 import           Control.Monad (forever)
 import           Data.Functor (void)
-import           Data.GI.Gtk.Threading
-                     (setCurrentThreadAsGUIThread, postGUISync)
+import           Data.GI.Gtk.Threading (setCurrentThreadAsGUIThread)
 import           Data.Maybe (fromJust)
-import           Data.Text as T
+import           Data.Text (pack)
 import qualified GI.Gtk as Gtk
 
-import           MusicScroll.TrackInfo (TrackInfo(..))
-import           MusicScroll.TagParsing (Lyrics(..))
+import           MusicScroll.TrackSuplement
 import           MusicScroll.UIEvent
 
 import           Paths_musicScroll
 
-data AppContext = AppContext
-  { mainWindow     :: Gtk.Window
-  , titleLabel     :: Gtk.Label
-  , artistLabel    :: Gtk.Label
-  , lyricsTextView :: Gtk.TextView
-  , errorLabel     :: Gtk.Label
-  }
 
 -- Remember to use Gtk.init Nothing before calling this.
 getGtkScene :: IO AppContext
 getGtkScene = do
   file    <- getDataFileName "app.glade"
-  builder <- Gtk.builderNewFromFile (T.pack file)
+  builder <- Gtk.builderNewFromFile (pack file)
   -- We *know* these ids are defined
   let getWidget wid id =
         Gtk.builderGetObject builder id
@@ -44,22 +35,28 @@ getGtkScene = do
              <*> getWidget Gtk.Label "artistLabel"
              <*> getWidget Gtk.TextView "lyricsTextView"
              <*> getWidget Gtk.Label "errorLabel"
+             <*> getWidget Gtk.Entry "titleSuplementEntry"
+             <*> getWidget Gtk.Entry "artistSuplementEntry"
+             <*> getWidget Gtk.Button "suplementAcceptButton"
+             <*> getWidget Gtk.CheckButton "keepArtistNameCheck"
 
-setupUIThread :: TBQueue UIEvent -> IO ()
-setupUIThread events =
+setupUIThread :: TBQueue UIEvent -> TBQueue TrackSuplement -> IO ()
+setupUIThread events outSupl =
   do appCtxMVar <- atomically newEmptyTMVar
-     withAsyncBound (uiThread appCtxMVar) $ \a1 ->
+     withAsyncBound (uiThread appCtxMVar outSupl) $ \a1 ->
        withAsync (uiUpdateThread events appCtxMVar) $ \a2 ->
          void (waitAnyCancel [a1, a2]) >> throwIO UserInterrupt
 
-uiThread :: TMVar AppContext -> IO ()
-uiThread ctxMVar = do
+uiThread :: TMVar AppContext -> TBQueue TrackSuplement -> IO ()
+uiThread ctxMVar outSupl = do
   setCurrentThreadAsGUIThread
   _ <- Gtk.init Nothing
   appCtx@(AppContext {..}) <- getGtkScene
   atomically (putTMVar ctxMVar appCtx)
   Gtk.labelSetText titleLabel "MusicScroll"
   Gtk.widgetShowAll mainWindow
+  _ <- Gtk.onButtonClicked suplementAcceptButton $
+         sendSuplementalInfo appCtx outSupl
   _ <- Gtk.onWidgetDestroy mainWindow Gtk.mainQuit
   Gtk.main
 
@@ -73,20 +70,8 @@ uiUpdateThread input ctxMVar = do
       GotLyric track lyrics -> updateNewLyrics appCtx (track, lyrics)
       ErrorOn cause -> updateErrorCause appCtx cause
 
-updateNewLyrics :: AppContext -> (TrackInfo, Lyrics) -> IO ()
-updateNewLyrics (AppContext {..}) (track, Lyrics singleLyrics) =
-  let !bytesToUpdate = fromIntegral $ T.length singleLyrics
-  in postGUISync $ do
-    Gtk.labelSetText errorLabel mempty
-    Gtk.labelSetText titleLabel (tTitle track)
-    Gtk.labelSetText artistLabel (tArtist track)
-    lyricsBuffer <- Gtk.textViewGetBuffer lyricsTextView
-    Gtk.textBufferSetText lyricsBuffer singleLyrics bytesToUpdate
-
-updateErrorCause :: AppContext -> ErrorCause -> IO ()
-updateErrorCause (AppContext {..}) cause = postGUISync $
-  do Gtk.labelSetText titleLabel "No Song available"
-     Gtk.labelSetText artistLabel mempty
-     lyricsBuffer <- Gtk.textViewGetBuffer lyricsTextView
-     Gtk.textBufferSetText lyricsBuffer mempty 0
-     Gtk.labelSetText errorLabel (errorMsg cause)
+sendSuplementalInfo :: AppContext -> TBQueue TrackSuplement -> IO ()
+sendSuplementalInfo (AppContext {..}) suplChan =
+  do trackSupl <- TrackSuplement <$> Gtk.entryGetText titleSuplementEntry
+                                 <*> Gtk.entryGetText artistSuplementEntry
+     atomically (writeTBQueue suplChan trackSupl)
