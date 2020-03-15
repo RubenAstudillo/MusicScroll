@@ -69,7 +69,7 @@ obtainTrackInfo metadata =
       trackByPath = TrackByPath <$> mUrl <*> pure mTitle <*> pure mArtist
 
       trackIdent :: Maybe TrackIdentifier
-      trackIdent =  (Left <$> trackByPath) <|> (Right <$> trackInfo)
+      trackIdent =  (Right <$> trackInfo) <|> (Left <$> trackByPath)
   in maybe (Left NoSong) Right trackIdent
 
 -- xesam:artist by definition should return a `[Text]`, but in practice
