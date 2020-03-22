@@ -4,11 +4,14 @@ module MusicScroll.DatabaseUtils
   , getDBSong
   , insertDBLyrics
   , getDBPath
+  , sqlDBCreate
   ) where
 
 import           Prelude hiding (null)
 import           Control.Applicative (Alternative(..))
 import           Control.Exception (bracket, evaluate)
+import           Control.Monad.Trans.Reader (ReaderT, ask)
+import           Control.Monad.IO.Class (MonadIO(..))
 import           Control.DeepSeq (rnf)
 import           Crypto.Hash (SHA1, hashUpdate, hashInit, hashFinalize)
 import           Data.ByteString (hGet, null)
@@ -22,31 +25,28 @@ import           System.Directory (createDirectory)
 import           MusicScroll.TrackInfo (TrackInfo(..), SongFilePath)
 import           MusicScroll.TagParsing (Lyrics(..))
 
-getDBLyrics :: SongFilePath -> IO Lyrics
+getDBLyrics :: SongFilePath -> ReaderT Connection IO Lyrics
 getDBLyrics songUrl = snd <$> getDBSong songUrl
 
-getDBSong :: SongFilePath -> IO (TrackInfo, Lyrics)
+getDBSong :: SongFilePath -> ReaderT Connection IO (TrackInfo, Lyrics)
 getDBSong songUrl =
-  do songHash <- fileHash songUrl
-     dbPath   <- getDBPath
-     bracket (open dbPath) close $ \conn ->
-       do execute_ conn sqlDBCreate
-          songRaw <- query conn sqlExtractSong (Only songHash)
-          case (songRaw :: [ (Text, Text, Text) ]) of
-            [] -> empty
-            (title, artist, lyrics):_ ->
-              let track = TrackInfo title artist songUrl
-              in return (track, coerce lyrics)
+  do conn <- ask
+     liftIO $ do
+       songHash <- fileHash songUrl
+       songRaw <- query conn sqlExtractSong (Only songHash)
+       case (songRaw :: [ (Text, Text, Text) ]) of
+         [] -> empty
+         (title, artist, lyrics):_ ->
+           let track = TrackInfo title artist songUrl
+           in return (track, coerce lyrics)
 
-
-insertDBLyrics :: TrackInfo -> Lyrics -> IO ()
+insertDBLyrics :: TrackInfo -> Lyrics -> ReaderT Connection IO ()
 insertDBLyrics (TrackInfo {..}) lyrics =
-  do songHash <- fileHash tUrl
-     dbPath   <- getDBPath
-     bracket (open dbPath) close $ \conn ->
-       do execute_ conn sqlDBCreate
-          let params = (songHash, tArtist, tTitle, coerce lyrics :: Text)
-          execute conn sqlInsertSong params
+  do conn <- ask
+     liftIO $ do
+       songHash <- fileHash tUrl
+       let params = (songHash, tArtist, tTitle, coerce lyrics :: Text)
+       execute conn sqlInsertSong params
 
 getDBPath :: IO FilePath
 getDBPath = do cacheDir <- getUserCacheDir "musicScroll"

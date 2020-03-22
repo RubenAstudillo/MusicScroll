@@ -7,14 +7,17 @@ import Control.Concurrent.STM (atomically, orElse)
 import Control.Concurrent.STM.TBQueue ( TBQueue, readTBQueue, writeTBQueue,
                                         newTBQueue )
 import Control.Applicative (Alternative(..))
+import Control.Exception (bracket)
 import Control.Monad.Trans.State (StateT, get, put, evalStateT)
 import Control.Monad.IO.Class (liftIO)
+import Control.Monad.Trans.Reader (ReaderT, runReaderT, ask)
 import Control.Monad (forever, when)
 import Numeric.Natural (Natural)
 import Data.Functor (void)
 import Data.Maybe (isJust)
+import Database.SQLite.Simple
 
-import MusicScroll.DatabaseUtils (getDBLyrics, getDBSong)
+import MusicScroll.DatabaseUtils 
 import MusicScroll.TrackInfo
 import MusicScroll.TrackSuplement
 import MusicScroll.AZLyrics (getLyricsFromWeb)
@@ -61,19 +64,22 @@ mergeQueue inputIdent inputSupl =
 
      pure newTrack
 
-
 getLyricsThread :: TBQueue TrackIdentifier -> TBQueue UIEvent -> IO a
-getLyricsThread input output = forever $
-  do trackIdent <- atomically (readTBQueue input)
-     event <- either caseByPath caseByInfo trackIdent
-     atomically $ writeTBQueue output event
+getLyricsThread input output =
+  do dbPath <- getDBPath
+     bracket (open dbPath) close $ \conn -> do
+       execute_ conn sqlDBCreate
+       forever $
+         do trackIdent <- atomically (readTBQueue input)
+            event <- flip runReaderT conn $ either caseByPath caseByInfo trackIdent
+            atomically $ writeTBQueue output event
 
-caseByInfo :: TrackInfo -> IO UIEvent
+caseByInfo :: TrackInfo -> ReaderT Connection IO UIEvent
 caseByInfo track =
   let tryGetLyrics = getDBLyrics (tUrl track) <|> getLyricsFromWeb track
   in (GotLyric track <$> tryGetLyrics) <|> pure (ErrorOn (NoLyricsOnWeb track))
 
-caseByPath :: TrackByPath -> IO UIEvent
+caseByPath :: TrackByPath -> ReaderT Connection IO UIEvent
 caseByPath track =
   ((uncurry GotLyric) <$> getDBSong (tpPath track)) <|>
   pure (ErrorOn (NotOnDB track))

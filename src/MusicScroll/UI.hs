@@ -10,11 +10,13 @@ import           Control.Concurrent.STM.TMVar
 import           Control.Exception (throwIO, AsyncException(UserInterrupt))
 import           Control.Monad (forever)
 import           Data.Functor (void)
+import           Data.Maybe (isNothing)
 import           Data.GI.Gtk.Threading (setCurrentThreadAsGUIThread)
 import           Data.Maybe (fromJust)
 import           Data.Text (pack)
 import qualified GI.Gtk as Gtk
 
+import           MusicScroll.TrackInfo (TrackByPath(tpArtist))
 import           MusicScroll.TrackSuplement
 import           MusicScroll.UIEvent
 
@@ -44,7 +46,7 @@ setupUIThread :: TBQueue UIEvent -> TBQueue TrackSuplement -> IO ()
 setupUIThread events outSupl =
   do appCtxMVar <- atomically newEmptyTMVar
      withAsyncBound (uiThread appCtxMVar outSupl) $ \a1 ->
-       withAsync (uiUpdateThread events appCtxMVar) $ \a2 ->
+       withAsync (uiUpdateThread events outSupl appCtxMVar) $ \a2 ->
          void (waitAnyCancel [a1, a2]) >> throwIO UserInterrupt
 
 uiThread :: TMVar AppContext -> TBQueue TrackSuplement -> IO ()
@@ -61,17 +63,30 @@ uiThread ctxMVar outSupl = do
   Gtk.main
 
 ---
-uiUpdateThread :: TBQueue UIEvent -> TMVar AppContext -> IO a
-uiUpdateThread input ctxMVar = do
+uiUpdateThread :: TBQueue UIEvent -> TBQueue TrackSuplement
+               -> TMVar AppContext -> IO a
+uiUpdateThread input outSupl ctxMVar = do
   appCtx <- atomically (takeTMVar ctxMVar)
   forever $ do
     event <- atomically (readTBQueue input)
     case event of
       GotLyric track lyrics -> updateNewLyrics appCtx (track, lyrics)
       ErrorOn cause -> updateErrorCause appCtx cause
+                         *> tryDefaultSupplement appCtx cause outSupl
 
 sendSuplementalInfo :: AppContext -> TBQueue TrackSuplement -> IO ()
 sendSuplementalInfo (AppContext {..}) suplChan =
   do trackSupl <- TrackSuplement <$> Gtk.entryGetText titleSuplementEntry
                                  <*> Gtk.entryGetText artistSuplementEntry
      atomically (writeTBQueue suplChan trackSupl)
+
+tryDefaultSupplement
+  :: AppContext -> ErrorCause -> TBQueue TrackSuplement -> IO ()
+tryDefaultSupplement ctx@(AppContext {..}) cause suplChan =
+  do shouldMaintainArtistSupl <- Gtk.getToggleButtonActive keepArtistNameCheck
+     validGuessArtist <- (/= mempty) <$> Gtk.entryGetText artistSuplementEntry
+     case cause of
+       NotOnDB track
+         | isNothing (tpArtist track), shouldMaintainArtistSupl,
+           validGuessArtist -> sendSuplementalInfo ctx suplChan
+       otherwise -> return ()
