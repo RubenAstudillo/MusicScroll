@@ -10,13 +10,11 @@ import           Control.Concurrent.STM.TMVar
 import           Control.Exception (throwIO, AsyncException(UserInterrupt))
 import           Control.Monad (forever)
 import           Data.Functor (void)
-import           Data.Maybe (isNothing)
 import           Data.GI.Gtk.Threading (setCurrentThreadAsGUIThread)
 import           Data.Maybe (fromJust)
 import           Data.Text (pack)
 import qualified GI.Gtk as Gtk
 
-import           MusicScroll.TrackInfo (TrackByPath(tpArtist))
 import           MusicScroll.TrackSuplement
 import           MusicScroll.UIEvent
 
@@ -86,7 +84,6 @@ tryDefaultSupplement ctx@(AppContext {..}) cause suplChan =
   do shouldMaintainArtistSupl <- Gtk.getToggleButtonActive keepArtistNameCheck
      validGuessArtist <- (/= mempty) <$> Gtk.entryGetText artistSuplementEntry
      case cause of
-       NotOnDB track
-         | isNothing (tpArtist track), shouldMaintainArtistSupl,
-           validGuessArtist -> sendSuplementalInfo ctx suplChan
+       OnlyMissingArtist | shouldMaintainArtistSupl, validGuessArtist ->
+                     sendSuplementalInfo ctx suplChan
        _ -> return ()
