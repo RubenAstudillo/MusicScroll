@@ -29,3 +29,5 @@ types and code samples helped me a lot on understanding how they ought
 to be organized. If I see you guys on a conference I will buy you a beer
 :-) . The `d-feet` program was really helpful for see how the data was
 layout on DBus.
+
+I accept donations <3, the COVID-19 certainly affected me economically!.
