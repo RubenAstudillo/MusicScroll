@@ -10,7 +10,7 @@ import Control.Applicative (Alternative(..))
 import Control.Exception (bracket)
 import Control.Monad.Trans.State (StateT, get, put, evalStateT)
 import Control.Monad.IO.Class (liftIO)
-import Control.Monad.Trans.Reader (ReaderT, runReaderT, ask)
+import Control.Monad.Trans.Reader (ReaderT, runReaderT)
 import Control.Monad (forever, when)
 import Numeric.Natural (Natural)
 import Data.Functor (void)
@@ -71,7 +71,8 @@ getLyricsThread input output =
        execute_ conn sqlDBCreate
        forever $
          do trackIdent <- atomically (readTBQueue input)
-            event <- flip runReaderT conn $ either caseByPath caseByInfo trackIdent
+            event <- flip runReaderT conn $
+                       either caseByPath caseByInfo trackIdent
             atomically $ writeTBQueue output event
 
 caseByInfo :: TrackInfo -> ReaderT Connection IO UIEvent

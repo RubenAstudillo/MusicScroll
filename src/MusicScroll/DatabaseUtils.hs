@@ -9,7 +9,7 @@ module MusicScroll.DatabaseUtils
 
 import           Prelude hiding (null)
 import           Control.Applicative (Alternative(..))
-import           Control.Exception (bracket, evaluate)
+import           Control.Exception (evaluate)
 import           Control.Monad.Trans.Reader (ReaderT, ask)
 import           Control.Monad.IO.Class (MonadIO(..))
 import           Control.DeepSeq (rnf)

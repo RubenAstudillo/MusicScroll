@@ -89,4 +89,4 @@ tryDefaultSupplement ctx@(AppContext {..}) cause suplChan =
        NotOnDB track
          | isNothing (tpArtist track), shouldMaintainArtistSupl,
            validGuessArtist -> sendSuplementalInfo ctx suplChan
-       otherwise -> return ()
+       _ -> return ()

@@ -10,7 +10,6 @@ import Data.Text as T hiding (filter, tail, map, empty)
 import Data.Text.Encoding (decodeUtf8)
 import Network.HTTP.Req
 import Database.SQLite.Simple (Connection)
-import Control.Concurrent (forkIO)
 
 import MusicScroll.TrackInfo (TrackInfo(..))
 import MusicScroll.TagParsing
