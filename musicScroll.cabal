@@ -65,6 +65,7 @@ library
                        MusicScroll.DatabaseUtils
                        MusicScroll.TrackSuplement
                        MusicScroll.Providers.AZLyrics
+                       MusicScroll.Providers.MusiXMatch
                        MusicScroll.Providers.Utils
                        Paths_musicScroll
 

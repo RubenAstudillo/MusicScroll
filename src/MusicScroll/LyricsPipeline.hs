@@ -22,6 +22,7 @@ import MusicScroll.TrackInfo
 import MusicScroll.TrackSuplement
 import MusicScroll.Web (getLyricsFromWeb)
 import MusicScroll.Providers.AZLyrics (azLyricsInstance)
+import MusicScroll.Providers.MusiXMatch (musiXMatchInstance)
 import MusicScroll.UIEvent
 
 sizeOfQueue :: Natural
@@ -78,7 +79,9 @@ getLyricsThread input output =
 
 caseByInfo :: TrackInfo -> ReaderT Connection IO UIEvent
 caseByInfo track =
-  let tryGetLyrics = getDBLyrics (tUrl track) <|> getLyricsFromWeb azLyricsInstance track
+  let tryGetLyrics = getDBLyrics (tUrl track)
+                     <|> getLyricsFromWeb azLyricsInstance track
+                     <|> getLyricsFromWeb musiXMatchInstance track
   in (GotLyric track <$> tryGetLyrics) <|> pure (ErrorOn (NoLyricsOnWeb track))
 
 caseByPath :: TrackByPath -> ReaderT Connection IO UIEvent
