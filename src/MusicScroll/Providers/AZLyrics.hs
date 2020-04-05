@@ -1,19 +1,23 @@
 {-# language OverloadedStrings, DataKinds #-}
 module MusicScroll.Providers.AZLyrics (azLyricsInstance) where
 
-import qualified Data.Char as C
-import           Data.Text (Text)
-import           Data.Text as T hiding (filter, tail, map)
-import           Network.HTTP.Req
-import           Text.HTML.TagSoup
+import Control.Category hiding ((.), id)
+import Data.Maybe (catMaybes)
+import Data.Text (Text)
+import Data.Text as T hiding (filter, tail, map, mapAccumL)
+-- import Data.Text.IO as T (readFile)
+import Data.Traversable (mapAccumL)
+import Network.HTTP.Req
+import Text.HTML.TagSoup
+import Text.HTML.TagSoup.Match (tagOpenLit)
 
-import           MusicScroll.TrackInfo (TrackInfo(..))
-import           MusicScroll.Providers.Utils
+import MusicScroll.TrackInfo (TrackInfo(..))
+import MusicScroll.Providers.Utils
 
 azLyricsInstance :: Provider
 azLyricsInstance = Provider
   { toUrl = toUrl'
-  , extractLyricsFromPage = extractLyricsFromPage' }
+  , extractLyricsFromPage = pipeline }
 
 toUrl' :: TrackInfo -> Url 'Https
 toUrl' track =
@@ -27,39 +31,13 @@ toUrl' track =
 normalize :: Text -> Text
 normalize = let noSpaces = replace " " "" in noSpaces . toLower
 
-extractLyricsFromPage' :: Text -> Lyrics
-extractLyricsFromPage' page =
-  let stream = parseTags page
-      pass1  = flip filter stream
-        (\t -> (not (isScript t)) && noEmptyText t && validTags t)
-      stream2 = zip3 pass1 (tail pass1) (tail (tail pass1))
-      pass2   = map (\(t, _, _) -> t) $ filter isStrophe stream2
-  in Lyrics . T.unlines . cleanOut $ pass2
+pipeline :: Text -> Lyrics
+pipeline = parseTags >>> mapAccumL discriminate False >>> snd
+             >>> catMaybes >>> innerText >>> stripStart >>> Lyrics
 
--- Pass 1
-validTags, noEmptyText :: Tag Text -> Bool
-validTags t = isTagOpenName "br" t   || isTagCloseName "div" t
-            || isTagOpenName "div" t || isTagCloseName "div" t
-            || isTagText t
-
-noEmptyText =
-  let invalidChars c = C.isSpace c || c == '\\' || c == 'n'
-                       || c == 'r' || c == 't'
-  in maybe True (not . T.all invalidChars) . maybeTagText
-
--- Pass 2
-isScript :: Tag Text -> Bool
-isScript = let invalidChars c = c == '>' || c == '{'
-           in maybe False (T.any invalidChars) . maybeTagText
-
--- Pass 3
-isStrophe :: (Tag Text, Tag Text, Tag Text) -> Bool
-isStrophe (TagText _, TagOpen "br" _, TagText _) = True
-isStrophe (TagText _, TagOpen "br" _, TagOpen "br" _) = True
-isStrophe (TagOpen "br" _, TagOpen "br" _, _) = True -- breakline
-isStrophe _ = False
-
--- Cleaning output
-cleanOut :: [Tag Text] -> [Text]
-cleanOut =   map (T.strip . T.replace "\\n" "")
-           . map (maybe "\n" id . maybeTagText)
+discriminate :: Bool -> Tag Text -> (Bool, Maybe (Tag Text))
+discriminate onDiv@True tag | isTagText tag = (onDiv, pure tag)
+discriminate onDiv tag
+  | tagOpenLit "div" (== []) tag  = (True, Nothing)
+  | isTagCloseName "div" tag      = (False, Nothing)
+  | otherwise                     = (onDiv, Nothing)
