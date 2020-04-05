@@ -1,23 +1,22 @@
-{-# language OverloadedStrings, DataKinds, NamedFieldPuns, TypeApplications #-}
-module MusicScroll.AZLyrics (getLyricsFromWeb) where
+{-# language OverloadedStrings, NamedFieldPuns, RecordWildCards #-}
+{-# language TypeApplications, DataKinds #-}
+module MusicScroll.Web (getLyricsFromWeb) where
 
 import Control.Exception (try, SomeException)
 import Control.Applicative (Alternative(empty))
 import Control.Monad.Trans.Reader (ReaderT)
 import Control.Monad.IO.Class (MonadIO(..))
-import Data.Text (Text)
-import Data.Text as T hiding (filter, tail, map, empty)
 import Data.Text.Encoding (decodeUtf8)
 import Network.HTTP.Req
 import Database.SQLite.Simple (Connection)
 
 import MusicScroll.TrackInfo (TrackInfo(..))
-import MusicScroll.TagParsing
 import MusicScroll.DatabaseUtils (insertDBLyrics)
+import MusicScroll.Providers.Utils
 
-getLyricsFromWeb :: TrackInfo -> ReaderT Connection IO Lyrics
-getLyricsFromWeb track@(TrackInfo {tArtist, tTitle}) =
-  do let songUrl = toUrl tArtist tTitle
+getLyricsFromWeb :: Provider -> TrackInfo -> ReaderT Connection IO Lyrics
+getLyricsFromWeb (Provider {..}) track =
+  do let songUrl = toUrl track
      resp <- liftIO $ try @SomeException (getPage songUrl)
      let notValid = either (const True)
                       ((/= 200) . responseStatusCode) resp
@@ -31,14 +30,3 @@ getPage :: Url 'Https -> IO BsResponse
 getPage url = runReq defaultHttpConfig $
   req GET url NoReqBody bsResponse mempty
 
-toUrl :: Text -> Text -> Url 'Https
-toUrl artist song =
-  let base :: Url 'Https
-      base = https "www.azlyrics.com"
-
-      quotedArtist = normalize artist
-      quotedSong = normalize song <> ".html"
-  in base /: "lyrics" /: quotedArtist /: quotedSong
-
-normalize :: Text -> Text
-normalize = let noSpaces = replace " " "" in noSpaces . toLower

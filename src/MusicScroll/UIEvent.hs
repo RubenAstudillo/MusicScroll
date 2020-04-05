@@ -9,7 +9,7 @@ import qualified GI.Gtk as Gtk
 import           Data.GI.Gtk.Threading (postGUISync)
 
 import           MusicScroll.TrackInfo (TrackInfo(..), TrackByPath(..))
-import           MusicScroll.TagParsing (Lyrics(..))
+import           MusicScroll.Providers.Utils (Lyrics(..))
 
 data UIEvent = GotLyric TrackInfo Lyrics
              | ErrorOn ErrorCause

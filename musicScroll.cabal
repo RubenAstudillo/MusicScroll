@@ -52,12 +52,11 @@ library
                        bytestring,
                        directory,
                        deepseq
-  exposed-modules:     MusicScroll.UI,
-                       MusicScroll.RealMain
+  exposed-modules:     MusicScroll.RealMain
+  other-modules:       MusicScroll.UI
                        MusicScroll.MPRIS
-                       MusicScroll.AZLyrics
+                       MusicScroll.Web
                        MusicScroll.LyricsPipeline
-                       MusicScroll.TagParsing
                        MusicScroll.TrackInfo
                        MusicScroll.UIEvent
                        MusicScroll.DBusNames
@@ -65,7 +64,10 @@ library
                        MusicScroll.ConnState
                        MusicScroll.DatabaseUtils
                        MusicScroll.TrackSuplement
-  other-modules:       Paths_musicScroll
+                       MusicScroll.Providers.AZLyrics
+                       MusicScroll.Providers.MusiXMatch
+                       MusicScroll.Providers.Utils
+                       Paths_musicScroll
 
 -- test-suite playground
 --     type:       exitcode-stdio-1.0
