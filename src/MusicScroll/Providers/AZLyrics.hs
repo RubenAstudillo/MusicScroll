@@ -1,15 +1,34 @@
-{-# language OverloadedStrings #-}
-module MusicScroll.TagParsing (Lyrics(..), extractLyricsFromPage) where
+{-# language OverloadedStrings, DataKinds #-}
+module MusicScroll.Providers.AZLyrics (azLyricsInstance) where
 
 import qualified Data.Char as C
 import           Data.Text (Text)
 import           Data.Text as T hiding (filter, tail, map)
+import           Network.HTTP.Req
 import           Text.HTML.TagSoup
 
-newtype Lyrics = Lyrics Text
+import           MusicScroll.TrackInfo (TrackInfo(..))
+import           MusicScroll.Providers.Utils
 
-extractLyricsFromPage :: Text -> Lyrics
-extractLyricsFromPage page =
+azLyricsInstance :: Provider
+azLyricsInstance = Provider
+  { toUrl = toUrl'
+  , extractLyricsFromPage = extractLyricsFromPage' }
+
+toUrl' :: TrackInfo -> Url 'Https
+toUrl' track =
+  let base :: Url 'Https
+      base = https "www.azlyrics.com"
+
+      quotedArtist = normalize (tArtist track)
+      quotedSong = normalize (tTitle track) <> ".html"
+  in base /: "lyrics" /: quotedArtist /: quotedSong
+
+normalize :: Text -> Text
+normalize = let noSpaces = replace " " "" in noSpaces . toLower
+
+extractLyricsFromPage' :: Text -> Lyrics
+extractLyricsFromPage' page =
   let stream = parseTags page
       pass1  = flip filter stream
         (\t -> (not (isScript t)) && noEmptyText t && validTags t)

@@ -23,7 +23,7 @@ import           Data.Coerce
 import           System.Directory (createDirectory)
 
 import           MusicScroll.TrackInfo (TrackInfo(..), SongFilePath)
-import           MusicScroll.TagParsing (Lyrics(..))
+import           MusicScroll.Providers.Utils (Lyrics(..))
 
 getDBLyrics :: SongFilePath -> ReaderT Connection IO Lyrics
 getDBLyrics songUrl = snd <$> getDBSong songUrl
