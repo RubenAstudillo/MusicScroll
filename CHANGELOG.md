@@ -1,5 +1,9 @@
 # Revision history for music-scroll
 
+## 0.2.3.0
+
+* Added other music providers
+
 ## 0.2.0.0
 
 * SQLite cache
