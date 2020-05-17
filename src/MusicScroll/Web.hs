@@ -2,7 +2,7 @@
 {-# language TypeApplications, DataKinds #-}
 module MusicScroll.Web (getLyricsFromWeb) where
 
-import Control.Exception (try, SomeException)
+import Control.Exception (try)
 import Control.Applicative (Alternative(empty))
 import Control.Monad.Trans.Reader (ReaderT)
 import Control.Monad.IO.Class (MonadIO(..))
@@ -17,7 +17,7 @@ import MusicScroll.Providers.Utils
 getLyricsFromWeb :: Provider -> TrackInfo -> ReaderT Connection IO Lyrics
 getLyricsFromWeb (Provider {..}) track =
   do let songUrl = toUrl track
-     resp <- liftIO $ try @SomeException (getPage songUrl)
+     resp <- liftIO $ try @HttpException (getPage songUrl)
      let notValid = either (const True)
                       ((/= 200) . responseStatusCode) resp
      if notValid then empty
@@ -29,4 +29,3 @@ getLyricsFromWeb (Provider {..}) track =
 getPage :: Url 'Https -> IO BsResponse
 getPage url = runReq defaultHttpConfig $
   req GET url NoReqBody bsResponse mempty
-

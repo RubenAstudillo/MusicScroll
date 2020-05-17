@@ -2,7 +2,7 @@ module MusicScroll.LyricsPipeline (lyricsThread, sizeOfQueue) where
 
 -- | Discriminate between getting the lyrics from SQLite or the web.
 
-import Control.Concurrent.Async (withAsync, waitAnyCancel)
+import Control.Concurrent.Async (async, cancel, concurrently_)
 import Control.Concurrent.STM (atomically, orElse)
 import Control.Concurrent.STM.TBQueue ( TBQueue, readTBQueue, writeTBQueue,
                                         newTBQueue )
@@ -13,7 +13,6 @@ import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Reader (ReaderT, runReaderT)
 import Control.Monad (forever, when)
 import Numeric.Natural (Natural)
-import Data.Functor (void)
 import Data.Maybe (isJust)
 import Database.SQLite.Simple
 
@@ -25,34 +24,33 @@ import MusicScroll.Providers.AZLyrics (azLyricsInstance)
 import MusicScroll.Providers.MusiXMatch (musiXMatchInstance)
 import MusicScroll.UIEvent
 
+type TrackQueue = (TBQueue TrackIdentifier, TBQueue TrackSuplement)
+type TrackContext a = StateT (Maybe TrackIdentifier) IO a
+
 sizeOfQueue :: Natural
 sizeOfQueue = 5
 
-lyricsThread :: TBQueue TrackIdentifier -> TBQueue TrackSuplement
-             -> TBQueue UIEvent -> IO ()
-lyricsThread inputIdent inputSupl output =
-  do songFilterChan <- atomically (newTBQueue sizeOfQueue)
-     let seenSongThread' = seenSongsThread inputIdent inputSupl songFilterChan
-     withAsync (evalStateT seenSongThread' Nothing) $ \seenSongsA ->
-       withAsync (getLyricsThread songFilterChan output) $ \getLyricsA ->
-         void $ waitAnyCancel [seenSongsA, getLyricsA]
+lyricsThread :: TrackQueue -> TBQueue UIEvent -> IO ()
+lyricsThread input output =
+  do middle <- atomically (newTBQueue sizeOfQueue)
+     let seenSongT'  = seenSongsThread input middle
+         getLyricsT' = getLyricsThread middle output
+     concurrently_ (evalStateT seenSongT' Nothing) getLyricsT'
 
 -- | This thread works as a model of the MVC pattern. The UI
 --   communicates its callbacks to here. The Dbus thread sends what it
 --   sees here to no repeat songs.
-seenSongsThread :: TBQueue TrackIdentifier -> TBQueue TrackSuplement
-                -> TBQueue TrackIdentifier -> StateT (Maybe TrackIdentifier) IO a
-seenSongsThread inputIdent inputSupl output = forever $
-  do mTrackIdent <- mergeQueue inputIdent inputSupl
+seenSongsThread :: TrackQueue -> TBQueue TrackIdentifier -> TrackContext a
+seenSongsThread input output = forever $
+  do mTrackIdent <- mergeQueue input
      notSeen <- (/=) <$> get <*> pure mTrackIdent
      when (notSeen && isJust mTrackIdent) $ do
        let Just trackIdent = mTrackIdent
        put mTrackIdent
        liftIO . atomically $ writeTBQueue output trackIdent
 
-mergeQueue :: TBQueue TrackIdentifier -> TBQueue TrackSuplement
-           -> StateT (Maybe TrackIdentifier) IO (Maybe TrackIdentifier)
-mergeQueue inputIdent inputSupl =
+mergeQueue :: TrackQueue -> TrackContext (Maybe TrackIdentifier)
+mergeQueue (inputIdent, inputSupl) =
   do let cleanInputIdent = cleanTrack <$> readTBQueue inputIdent
          mergedInputChan = (Left <$> cleanInputIdent) `orElse`
                            (Right <$> readTBQueue inputSupl)
@@ -71,11 +69,14 @@ getLyricsThread input output =
   do dbPath <- getDBPath
      bracket (open dbPath) close $ \conn -> do
        execute_ conn sqlDBCreate
-       forever $
-         do trackIdent <- atomically (readTBQueue input)
-            event <- flip runReaderT conn $
-                       either caseByPath caseByInfo trackIdent
-            atomically $ writeTBQueue output event
+       flip evalStateT Nothing . forever $
+         do trackIdent <- liftIO $ atomically (readTBQueue input)
+            get >>= maybe (pure ()) (liftIO . cancel)
+            asyncId <- liftIO . async $
+              do event <- flip runReaderT conn $
+                            either caseByPath caseByInfo trackIdent
+                 atomically $ writeTBQueue output event
+            put (pure asyncId)
 
 caseByInfo :: TrackInfo -> ReaderT Connection IO UIEvent
 caseByInfo track =
