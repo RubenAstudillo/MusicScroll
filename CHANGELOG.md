@@ -1,5 +1,10 @@
 # Revision history for music-scroll
 
+# 0.2.3.3
+
+* On low bandwith conditions, don't keep downloading the previous song
+  requested.
+
 ## 0.2.3.0
 
 * Added other music providers
@@ -16,7 +21,7 @@
   add more.
 * Better management of dbus signals for changing connection state
   between music clients.
-  
+
 ## 0.1.1.0 -- 2020-01-22
 
 * Signal when the song couldn't be gotten from a lyrics website.
