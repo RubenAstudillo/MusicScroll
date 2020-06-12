@@ -8,7 +8,7 @@ import           Control.Concurrent.STM.TBQueue (TBQueue, readTBQueue, writeTBQu
 import           Control.Concurrent.STM.TMVar
                      (TMVar, newEmptyTMVar, takeTMVar, putTMVar)
 import           Control.Exception (throwIO, AsyncException(UserInterrupt))
-import           Control.Monad (forever)
+import           Control.Monad (forever, when)
 import           Data.Functor (void)
 import           Data.GI.Gtk.Threading (setCurrentThreadAsGUIThread)
 import           Data.Maybe (fromJust)
@@ -83,7 +83,6 @@ tryDefaultSupplement
 tryDefaultSupplement ctx@(AppContext {..}) cause suplChan =
   do shouldMaintainArtistSupl <- Gtk.getToggleButtonActive keepArtistNameCheck
      validGuessArtist <- (/= mempty) <$> Gtk.entryGetText artistSuplementEntry
-     case cause of
-       OnlyMissingArtist | shouldMaintainArtistSupl, validGuessArtist ->
-                     sendSuplementalInfo ctx suplChan
-       _ -> return ()
+     let isCauseMissingArtist = cause == OnlyMissingArtist
+     when (isCauseMissingArtist && shouldMaintainArtistSupl && validGuessArtist)
+       (sendSuplementalInfo ctx suplChan)
