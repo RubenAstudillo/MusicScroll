@@ -51,7 +51,9 @@ library
                        cryptonite,
                        bytestring,
                        directory,
-                       deepseq
+                       deepseq,
+                       reactive-banana,
+                       reactive-banana-gi-gtk
   exposed-modules:     MusicScroll.RealMain
   other-modules:       MusicScroll.UI
                        MusicScroll.MPRIS

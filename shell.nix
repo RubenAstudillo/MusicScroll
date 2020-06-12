@@ -7,7 +7,7 @@ let
   f = { mkDerivation, async, base, bytestring, containers
       , cryptonite, dbus, directory, gi-gtk, gi-gtk-hs, gtk3, mtl, req
       , sqlite-simple, stdenv, stm, tagsoup, text, transformers
-      , xdg-basedir
+      , xdg-basedir, reactive-banana, reactive-banana-gi-gtk
       }:
       mkDerivation {
         pname = "musicScroll";
@@ -19,7 +19,8 @@ let
         libraryHaskellDepends = [
           async base bytestring containers cryptonite dbus directory gi-gtk
           gi-gtk-hs mtl req sqlite-simple stm tagsoup text transformers
-          xdg-basedir
+          xdg-basedir reactive-banana
+          # xdg-basedir reactive-banana reactive-banana-gi-gtk
         ];
         executableHaskellDepends = [ base ];
         executablePkgconfigDepends = [ gtk3 ];
