@@ -1,6 +1,7 @@
-{-# language RecordWildCards, OverloadedStrings #-}
+{-# language RecordWildCards, OverloadedStrings, OverloadedLabels #-}
 module MusicScroll.UI (setupUIThread) where
 
+import           Control.Monad.IO.Class (MonadIO(..))
 import           Control.Concurrent.Async
                      (withAsyncBound, waitAnyCancel, withAsync)
 import           Control.Concurrent.STM (atomically)
@@ -12,14 +13,45 @@ import           Control.Monad (forever)
 import           Data.Functor (void)
 import           Data.GI.Gtk.Threading (setCurrentThreadAsGUIThread)
 import           Data.Maybe (fromJust)
-import           Data.Text (pack)
+import           Data.Text (pack, Text)
 import qualified GI.Gtk as Gtk
+
+import           Reactive.Banana.Frameworks
+import           Reactive.Banana.Combinators
+import           Reactive.Banana.GI.Gtk
 
 import           MusicScroll.TrackSuplement
 import           MusicScroll.UIEvent
 
 import           Paths_musicScroll
 
+searchSongSignal :: Gtk.Builder -> MomentIO (Event TrackSuplement)
+searchSongSignal b = do
+  titleSupW <- castB b "titleSuplementEntry" Gtk.Entry
+  titleB <- attrB titleSupW #text
+  artistSupW <- castB b "artistSuplementEntry" Gtk.Entry
+  artistB <- attrB artistSupW #text
+  supAcceptButton <- castB b "suplementAcceptButton" Gtk.Button
+  clickedE <- signalE0 supAcceptButton #clicked
+  let supl = TrackSuplement <$> titleB <*> artistB
+  return $ supl <@ clickedE
+
+networkDescription :: TBQueue TrackSuplement -> MomentIO ()
+networkDescription suplChan = do
+  file <- liftIO $ getDataFileName "app.glade"
+  builder <- Gtk.builderNewFromFile (pack file)
+
+  mainWindow <- castB builder "mainWindow" Gtk.Window
+  destroyE <- signalE0 mainWindow #destroy
+  reactimate $ Gtk.mainQuit <$ destroyE
+
+  titleL <- castB builder "titleLabel" Gtk.Label
+  liftIO $ Gtk.labelSetText titleL "MusicScroll"
+
+  searchE <- searchSongSignal builder
+  reactimate $ (atomically . writeTBQueue suplChan) <$> searchE
+
+  Gtk.widgetShowAll mainWindow
 
 -- Remember to use Gtk.init Nothing before calling this.
 getGtkScene :: IO AppContext
@@ -53,11 +85,7 @@ uiThread ctxMVar outSupl = do
   _ <- Gtk.init Nothing
   appCtx@(AppContext {..}) <- getGtkScene
   atomically (putTMVar ctxMVar appCtx)
-  Gtk.labelSetText titleLabel "MusicScroll"
-  Gtk.widgetShowAll mainWindow
-  _ <- Gtk.onButtonClicked suplementAcceptButton $
-         sendSuplementalInfo appCtx outSupl
-  _ <- Gtk.onWidgetDestroy mainWindow Gtk.mainQuit
+  compile (networkDescription outSupl) >>= actuate
   Gtk.main
 
 ---
