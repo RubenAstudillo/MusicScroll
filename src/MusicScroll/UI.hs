@@ -12,7 +12,6 @@ import           Control.Exception (throwIO, AsyncException(UserInterrupt))
 import           Control.Monad (forever)
 import           Data.Functor (void)
 import           Data.GI.Gtk.Threading (setCurrentThreadAsGUIThread)
-import           Data.Maybe (fromJust)
 import           Data.Text (pack, Text)
 import qualified GI.Gtk as Gtk
 
@@ -59,18 +58,21 @@ networkDescription addHandle suplChan = do
   titleL <- castB builder "titleLabel" Gtk.Label
   artistL <- castB builder "artistLabel" Gtk.Label
   errorL <- castB builder "errorLabel" Gtk.Label
-  lyricsTV <- castB builder "lyricsTextView" Gtk.TextView
+  lyricsTB <- castB builder "lyricsTextView" Gtk.TextView >>= Gtk.textViewGetBuffer
   -- liftIO $ Gtk.labelSetText titleL "MusicScroll"
 
   dataE <- fromAddHandler addHandle
-  let (songE, errorE) = splitDataSignal dataE
+  -- let (songE, errorE) = splitDataSignal dataE
   -- let lyricsE = coerce . snd <$> songE
-  titleB  <- stepper "MusicScroll" (tTitle . fst <$> songE)
-  artistB <- stepper "" (tArtist . fst <$> songE)
+  titleB  <- stepper "MusicScroll" (getTitleB <$> dataE)
+  artistB <- stepper "" (getArtistB <$> dataE)
+  errorB  <- stepper "" (getErrorB <$> dataE)
+  lyricsB <- stepper "" (getLyricsB <$> dataE)
   sink titleL [#label :== titleB]
-  sink artistL [#label :== artistB]
-  reactimate $ Gtk.labelSetText errorL mempty <$ songE
-  reactimate $ updateNewLyrics lyricsTV <$> songE
+  -- sink artistL [#label :== artistB]
+  sink errorL [#label :== errorB]
+  sink lyricsTB [#text :== lyricsB]
+  -- reactimate $ updateNewLyrics lyricsTV <$> songE
 
   (searchE, trackSuplB) <- searchSongSignal builder
   reactimate $ (atomically . writeTBQueue suplChan) <$> searchE

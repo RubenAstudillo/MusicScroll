@@ -1,4 +1,4 @@
-{-# language OverloadedStrings, RecordWildCards, BangPatterns, PatternSynonyms #-}
+{-# language OverloadedStrings, RecordWildCards, BangPatterns, PatternSynonyms, LambdaCase #-}
 module MusicScroll.UIEvent where
 
 import           Control.Monad (unless)
@@ -67,6 +67,12 @@ updateNewLyrics lyricsTextView (track, Lyrics singleLyrics) = do
   let !bytesToUpdate = fromIntegral $ T.length singleLyrics
   lyricsBuffer <- Gtk.textViewGetBuffer lyricsTextView
   Gtk.textBufferSetText lyricsBuffer singleLyrics bytesToUpdate
+
+getTitleB, getArtistB, getErrorB, getLyricsB :: UIEvent -> Text
+getTitleB = \case { GotLyric track _ -> tTitle track ; _ -> "No Song available" }
+getArtistB = \case { GotLyric track _ -> tArtist track ; _ -> mempty }
+getErrorB = \case { ErrorOn cause -> errorMsg cause ; _ -> mempty }
+getLyricsB = \case { GotLyric _ (Lyrics l) -> l ; _ -> mempty }
 
 updateErrorCause :: AppContext -> ErrorCause -> IO ()
 updateErrorCause ctx@(AppContext {..}) cause = postGUISync $
