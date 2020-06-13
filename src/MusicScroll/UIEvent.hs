@@ -51,16 +51,22 @@ extractGuess (NotOnDB (TrackByPath {..})) =
 extractGuess _ = Nothing
 
 -- | Only usable inside a gtk context
-updateNewLyrics :: AppContext -> (TrackInfo, Lyrics) -> IO ()
-updateNewLyrics ctx@(AppContext {..}) (track, Lyrics singleLyrics) =
+-- updateNewLyrics :: AppContext -> (TrackInfo, Lyrics) -> IO ()
+-- updateNewLyrics ctx@(AppContext {..}) (track, Lyrics singleLyrics) =
+--   let !bytesToUpdate = fromIntegral $ T.length singleLyrics
+--   in postGUISync $ do
+--     Gtk.labelSetText errorLabel mempty
+--     Gtk.labelSetText titleLabel (tTitle track)
+--     Gtk.labelSetText artistLabel (tArtist track)
+--     lyricsBuffer <- Gtk.textViewGetBuffer lyricsTextView
+--     Gtk.textBufferSetText lyricsBuffer singleLyrics bytesToUpdate
+--     updateSuplementalGuess ctx (mempty, mempty)  // this
+
+updateNewLyrics :: Gtk.TextView -> (TrackInfo, Lyrics) -> IO ()
+updateNewLyrics lyricsTextView (track, Lyrics singleLyrics) = do
   let !bytesToUpdate = fromIntegral $ T.length singleLyrics
-  in postGUISync $ do
-    Gtk.labelSetText errorLabel mempty
-    Gtk.labelSetText titleLabel (tTitle track)
-    Gtk.labelSetText artistLabel (tArtist track)
-    lyricsBuffer <- Gtk.textViewGetBuffer lyricsTextView
-    Gtk.textBufferSetText lyricsBuffer singleLyrics bytesToUpdate
-    updateSuplementalGuess ctx (mempty, mempty)
+  lyricsBuffer <- Gtk.textViewGetBuffer lyricsTextView
+  Gtk.textBufferSetText lyricsBuffer singleLyrics bytesToUpdate
 
 updateErrorCause :: AppContext -> ErrorCause -> IO ()
 updateErrorCause ctx@(AppContext {..}) cause = postGUISync $
