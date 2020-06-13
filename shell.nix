@@ -19,8 +19,7 @@ let
         libraryHaskellDepends = [
           async base bytestring containers cryptonite dbus directory gi-gtk
           gi-gtk-hs mtl req sqlite-simple stm tagsoup text transformers
-          xdg-basedir reactive-banana
-          # xdg-basedir reactive-banana reactive-banana-gi-gtk
+          xdg-basedir reactive-banana reactive-banana-gi-gtk
         ];
         executableHaskellDepends = [ base ];
         executablePkgconfigDepends = [ gtk3 ];
@@ -35,9 +34,16 @@ let
                        then pkgs.profiledHaskellPackages
                        else pkgs.haskell.packages.${compiler};
 
+  fixedHaskellPackages = pkgs.haskellPackages.override {
+    overrides = self: super: {
+      reactive-banana = pkgs.haskell.lib.doJailbreak super.reactive-banana;
+      reactive-banana-gi-gtk = pkgs.haskell.lib.doJailbreak super.reactive-banana-gi-gtk;
+    };
+  };
+
   variant = if doBenchmark then pkgs.haskell.lib.doBenchmark else pkgs.lib.id;
 
-  drv = variant (haskellPackages.callPackage f { gtk3 = nixpkgs.gtk3; });
+  drv = variant (fixedHaskellPackages.callPackage f { gtk3 = nixpkgs.gtk3; });
 
 in
 
