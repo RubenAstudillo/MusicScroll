@@ -27,7 +27,9 @@ toUrl' track =
   in base /: "lyrics" /: quotedArtist /: quotedSong
 
 normalize :: Text -> Text
-normalize = let noSpaces = replace " " "" in noSpaces . toLower
+normalize = let noSpaces = replace " " ""
+                noApostrophes = replace "'" ""
+            in noApostrophes . noSpaces . toLower
 
 pipeline :: Text -> Lyrics
 pipeline = parseTags >>> mapAccumL discriminate False >>> snd
