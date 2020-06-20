@@ -41,12 +41,16 @@ getDBSong songUrl =
            in return (track, coerce lyrics)
 
 insertDBLyrics :: TrackInfo -> Lyrics -> ReaderT Connection IO ()
-insertDBLyrics (TrackInfo {..}) lyrics =
-  do conn <- ask
-     liftIO $ do
-       songHash <- fileHash tUrl
-       let params = (songHash, tArtist, tTitle, coerce lyrics :: Text)
-       execute conn sqlInsertSong params
+insertDBLyrics (TrackInfo {..}) lyrics = ask >>= \conn -> liftIO $
+  do songHash <- fileHash tUrl
+     let params = (songHash, tArtist, tTitle, coerce lyrics :: Text)
+     execute conn sqlInsertSong params
+
+updateDBLyrics :: TrackInfo -> Lyrics -> ReaderT Connection IO ()
+updateDBLyrics (TrackInfo {..}) lyrics = ask >>= \conn -> liftIO $
+  do songHash <- fileHash tUrl
+     let params = (coerce lyrics :: Text, songHash)
+     execute conn sqlUpdateSong params
 
 getDBPath :: IO FilePath
 getDBPath = do cacheDir <- getUserCacheDir "musicScroll"
@@ -66,7 +70,7 @@ fileHash fp = withFile fp ReadMode $ \hdl ->
                        looper newCtx
   in looper (hashInit @SHA1)
 
-sqlDBCreate, sqlInsertSong, sqlExtractSong :: Query
+sqlDBCreate, sqlInsertSong, sqlExtractSong, sqlUpdateSong :: Query
 sqlDBCreate =
   "create table if not exists MusicScrollTable(\n\
   \  songHash text primary key,\n\
@@ -78,3 +82,6 @@ sqlInsertSong = "insert into MusicScrollTable values (?, ?, ?, ?);"
 
 sqlExtractSong =
   "select title, artist, lyrics from MusicScrollTable where songHash == ?;"
+
+sqlUpdateSong =
+  "update MusicScrollTable set lyrics = ? where songHash = ? ;"
