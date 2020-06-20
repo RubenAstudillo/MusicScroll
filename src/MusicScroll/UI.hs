@@ -43,8 +43,9 @@ getGtkScene = do
 setupUIThread :: TBQueue UIEvent -> TBQueue TrackSuplement -> IO ()
 setupUIThread events outSupl =
   do appCtxMVar <- atomically newEmptyTMVar
-     withAsyncBound (uiThread appCtxMVar outSupl) $ \a1 ->
-       withAsync (uiUpdateThread events outSupl appCtxMVar) $ \a2 ->
+     withAsyncBound (uiThread appCtxMVar outSupl) $ \a1 -> do
+       appCtx <- atomically (takeTMVar appCtxMVar)
+       withAsync (uiUpdateThread appCtx events outSupl) $ \a2 ->
          void (waitAnyCancel [a1, a2]) >> throwIO UserInterrupt
 
 uiThread :: TMVar AppContext -> TBQueue TrackSuplement -> IO ()
@@ -61,10 +62,9 @@ uiThread ctxMVar outSupl = do
   Gtk.main
 
 ---
-uiUpdateThread :: TBQueue UIEvent -> TBQueue TrackSuplement
-               -> TMVar AppContext -> IO a
-uiUpdateThread input outSupl ctxMVar = do
-  appCtx <- atomically (takeTMVar ctxMVar)
+uiUpdateThread :: AppContext -> TBQueue UIEvent -> TBQueue TrackSuplement
+               -> IO a
+uiUpdateThread appCtx input outSupl =
   forever $ do
     event <- atomically (readTBQueue input)
     case event of
