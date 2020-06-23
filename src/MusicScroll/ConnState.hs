@@ -1,8 +1,4 @@
-module MusicScroll.ConnState
-  ( ConnState(..)
-  , newConnState
-  , setBus
-  ) where
+module MusicScroll.ConnState where
 
 import DBus (BusName)
 import DBus.Client (Client)

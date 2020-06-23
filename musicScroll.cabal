@@ -51,7 +51,10 @@ library
                        cryptonite,
                        bytestring,
                        directory,
-                       deepseq
+                       deepseq,
+                       pipes,
+                       pipes-concurrency,
+                       pipes-safe
   exposed-modules:     MusicScroll.RealMain
   other-modules:       MusicScroll.UI
                        MusicScroll.MPRIS
@@ -62,6 +65,7 @@ library
                        MusicScroll.DBusNames
                        MusicScroll.DBusSignals
                        MusicScroll.ConnState
+                       MusicScroll.ConnStateP
                        MusicScroll.DatabaseUtils
                        MusicScroll.TrackSuplement
                        MusicScroll.Providers.AZLyrics

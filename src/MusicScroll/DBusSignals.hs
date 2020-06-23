@@ -1,8 +1,10 @@
-{-# language OverloadedStrings #-}
+{-# language OverloadedStrings, ExplicitForAll #-}
 module MusicScroll.DBusSignals
   ( mediaPropChangeRule
   , waitForChange
+  , waitForChangeP
   , changeMusicClient
+  , changeMusicClientP
   ) where
 
 import Control.Concurrent.STM (atomically)
@@ -11,12 +13,14 @@ import Control.Monad.IO.Class (MonadIO(..))
 import Control.Monad.Trans.State (StateT, gets, modify)
 import Data.Foldable (find)
 import Data.Maybe (fromJust)
+import Pipes
 
 import DBus.Client
 import DBus
 
 import MusicScroll.DBusNames
 import MusicScroll.ConnState
+import MusicScroll.ConnStateP
 
 mediaPropChangeRule, busNameAddedRule :: MatchRule
 mediaPropChangeRule = matchAny
@@ -38,6 +42,13 @@ waitForChange rule =
        _ <- atomically $ takeTMVar trigger
        removeMatch client disarmHandler
 
+waitForChangeP :: MonadIO m => ConnStateP -> MatchRule -> m ()
+waitForChangeP (ConnStateP client _) rule = liftIO $
+  do trigger       <- atomically newEmptyTMVar
+     disarmHandler <- armSignal client trigger rule
+     _ <- atomically $ takeTMVar trigger
+     removeMatch client disarmHandler
+
 armSignal :: Client -> TMVar () -> MatchRule -> IO SignalHandler
 armSignal client trigger rule =
   addMatch client rule (\_ -> atomically ( putTMVar trigger () ))
@@ -51,6 +62,15 @@ changeMusicClient =
        Just newBus -> modify (setBus newBus)
        Nothing     -> do waitForChange busNameAddedRule
                          changeMusicClient
+
+changeMusicClientP :: MonadIO m => ConnStateP -> m ConnStateP
+changeMusicClientP state@(ConnStateP client bus) =
+  do availableStatus <- liftIO $ traverse (checkName client) allBuses
+     let taggedBuses = zip allBuses availableStatus
+     case fst <$> find snd taggedBuses of
+       Just newBus -> pure (ConnStateP client newBus)
+       Nothing     -> do waitForChangeP state busNameAddedRule
+                         changeMusicClientP state
 
 checkName :: Client -> BusName -> IO Bool
 checkName client name = do
