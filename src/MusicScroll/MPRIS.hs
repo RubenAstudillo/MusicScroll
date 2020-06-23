@@ -1,3 +1,4 @@
+{-# language LambdaCase #-}
 module MusicScroll.MPRIS (dbusThread) where
 
 import Control.Concurrent.STM (atomically)
@@ -36,24 +37,19 @@ dbusThread trackChan eventChan = bracket connectSession disconnect
         (Right trackIdent) -> sendToLyricsPipeline trackIdent
                               *> waitForChange mediaPropChangeRule
 
-dbusThreadP :: Output TrackIdentifier -> Output TrackInfoError
-            -> Producer TrackIdentifier IO ()
-dbusThreadP trackout errorout = do
-  state <- Safe.runSafeP $ Safe.bracket (liftIO connectSession)
-             (liftIO . disconnect) (pure . newConnStateP)
-  loop state
+dbusThreadP :: Output TrackIdentifier -> Output UIEvent -> IO a
+dbusThreadP trackout errorout = bracket connectSession disconnect
+  (evalStateT loop . newConnStateP)
   where
-    -- loop :: ConnStateP -> _
-    loop state =
-      do Just mtrack <- P.head $ for (yield state) tryGetInfoP
-         case mtrack of
-           Left (NoMusicClient _) -> changeMusicClientP state >>= loop
-           Left NoSong -> do yield (ErrorOn ENoSong) >-> toOutput errorout
-                             wait state *> loop state
-           Right trackIdent -> do yield trackIdent >-> toOutput trackout
-                                  wait state *> loop state
-
-    wait s = waitForChangeP s mediaPropChangeRule
+    loop :: StateT ConnStateP IO a
+    loop = forever $ tryGetInfoP >>= \case
+        Left (NoMusicClient _) -> changeMusicClientP
+        Left NoSong ->
+          do runEffect $ yield (ErrorOn ENoSong) >-> toOutput errorout
+             waitForChangeP mediaPropChangeRule
+        Right trackIdent ->
+          do runEffect $ yield trackIdent >-> toOutput trackout
+             waitForChangeP mediaPropChangeRule
 
 sendToLyricsPipeline :: TrackIdentifier -> StateT ConnState IO ()
 sendToLyricsPipeline trackIdent =

@@ -1,4 +1,4 @@
-{-# language OverloadedStrings, ExplicitForAll #-}
+{-# language OverloadedStrings, FlexibleContexts #-}
 module MusicScroll.DBusSignals
   ( mediaPropChangeRule
   , waitForChange
@@ -10,6 +10,7 @@ module MusicScroll.DBusSignals
 import Control.Concurrent.STM (atomically)
 import Control.Concurrent.STM.TMVar (TMVar, takeTMVar, newEmptyTMVar, putTMVar)
 import Control.Monad.IO.Class (MonadIO(..))
+import Control.Monad.State.Class (MonadState(..))
 import Control.Monad.Trans.State (StateT, gets, modify)
 import Data.Foldable (find)
 import Data.Maybe (fromJust)
@@ -42,9 +43,11 @@ waitForChange rule =
        _ <- atomically $ takeTMVar trigger
        removeMatch client disarmHandler
 
-waitForChangeP :: MonadIO m => ConnStateP -> MatchRule -> m ()
-waitForChangeP (ConnStateP client _) rule = liftIO $
-  do trigger       <- atomically newEmptyTMVar
+waitForChangeP :: (MonadState ConnStateP m, MonadIO m) => MatchRule -> m ()
+waitForChangeP rule = do
+  (ConnStateP client _) <- get
+  liftIO $ do
+     trigger       <- atomically newEmptyTMVar
      disarmHandler <- armSignal client trigger rule
      _ <- atomically $ takeTMVar trigger
      removeMatch client disarmHandler
@@ -63,14 +66,15 @@ changeMusicClient =
        Nothing     -> do waitForChange busNameAddedRule
                          changeMusicClient
 
-changeMusicClientP :: MonadIO m => ConnStateP -> m ConnStateP
-changeMusicClientP state@(ConnStateP client bus) =
-  do availableStatus <- liftIO $ traverse (checkName client) allBuses
+changeMusicClientP :: (MonadState ConnStateP m, MonadIO m) => m ()
+changeMusicClientP =
+  do state@(ConnStateP client bus) <- get
+     availableStatus <- liftIO $ traverse (checkName client) allBuses
      let taggedBuses = zip allBuses availableStatus
      case fst <$> find snd taggedBuses of
-       Just newBus -> pure (ConnStateP client newBus)
-       Nothing     -> do waitForChangeP state busNameAddedRule
-                         changeMusicClientP state
+       Just newBus -> put (ConnStateP client newBus)
+       Nothing     -> do waitForChangeP busNameAddedRule
+                         changeMusicClientP
 
 checkName :: Client -> BusName -> IO Bool
 checkName client name = do

@@ -1,10 +1,11 @@
-{-# language OverloadedStrings, NamedFieldPuns, ExplicitForAll #-}
+{-# language OverloadedStrings, NamedFieldPuns, FlexibleContexts #-}
 module MusicScroll.TrackInfo where
 
 import           Prelude hiding (readFile, lookup)
 import           Control.Applicative (Alternative(..))
 import           Control.Monad (join)
 import           Control.Monad.IO.Class (MonadIO(..))
+import           Control.Monad.State.Class (MonadState(..))
 import           DBus
 import           DBus.Client
 import           Data.Bifunctor (first, bimap)
@@ -49,14 +50,16 @@ tryGetInfo client busName = do
                   } & fmap (first NoMusicClient)
     return . join $ obtainTrackInfo <$> metadata
 
-tryGetInfoP :: forall a m. (MonadIO m) => ConnStateP
-  -> Producer (Either TrackInfoError TrackIdentifier) m ()
-tryGetInfoP (ConnStateP client busName) = do
-  metadata <- liftIO $ (first NoMusicClient) <$> getPropertyValue client
-    (methodCall mediaObject mediaInterface "Metadata") {
-      methodCallDestination = pure busName
-    }
-  yield . join $ obtainTrackInfo <$> metadata
+tryGetInfoP :: (MonadState ConnStateP m, MonadIO m) =>
+  m (Either TrackInfoError TrackIdentifier)
+tryGetInfoP = do
+  (ConnStateP client busName) <- get
+  liftIO $ do
+    metadata <- (first NoMusicClient) <$> getPropertyValue client
+      (methodCall mediaObject mediaInterface "Metadata") {
+        methodCallDestination = pure busName
+      }
+    pure . join $ obtainTrackInfo <$> metadata
 
 obtainTrackInfo :: Map Text Variant -> Either TrackInfoError TrackIdentifier
 obtainTrackInfo metadata =
