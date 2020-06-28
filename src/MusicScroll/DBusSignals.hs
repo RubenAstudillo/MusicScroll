@@ -16,6 +16,8 @@ import Data.Foldable (find)
 import Data.Maybe (fromJust)
 import Pipes
 
+import Debug.Trace
+
 import DBus.Client
 import DBus
 
@@ -45,12 +47,18 @@ waitForChange rule =
 
 waitForChangeP :: (MonadState ConnStateP m, MonadIO m) => MatchRule -> m ()
 waitForChangeP rule = do
-  (ConnStateP client _) <- get
+  (ConnStateP client bus) <- get
+  traceM $ "Recive2: " ++ show bus
+  traceM $ "Recive2: antes wait"
   liftIO $ do
      trigger       <- atomically newEmptyTMVar
      disarmHandler <- armSignal client trigger rule
+     traceIO "Recive2: arm"
      _ <- atomically $ takeTMVar trigger
+     traceIO "Recive2: take"
      removeMatch client disarmHandler
+     traceIO "Recive2: remove"
+  traceM "Recive2: despues wait"
 
 armSignal :: Client -> TMVar () -> MatchRule -> IO SignalHandler
 armSignal client trigger rule =

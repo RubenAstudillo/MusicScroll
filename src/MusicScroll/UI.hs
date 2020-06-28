@@ -1,5 +1,5 @@
 {-# language RecordWildCards, OverloadedStrings #-}
-module MusicScroll.UI (setupUIThread) where
+module MusicScroll.UI (setupUIThread, uiThread2) where
 
 import           Control.Concurrent.Async
                      (withAsyncBound, waitAnyCancel, withAsync)
@@ -48,6 +48,12 @@ setupUIThread events outSupl =
        withAsync (uiUpdateThread appCtx events outSupl) $ \a2 ->
          void (waitAnyCancel [a1, a2]) >> throwIO UserInterrupt
 
+-- setupUIThread2 :: TMVar AppContext -> IO ()
+-- setupUIThread2 appCtxMVar = withAsyncBound (uiThread appCtxMVar) $ \a1 ->
+--   do appCtx <- atomically (takeTMVar appCtxMVar)
+--      withAsync (uiUpdateThread appCtx events outSupl) $ \a2 ->
+--        void (waitAnyCancel [a1, a2]) >> throwIO UserInterrupt
+
 uiThread :: TMVar AppContext -> TBQueue TrackSuplement -> IO ()
 uiThread ctxMVar outSupl = do
   setCurrentThreadAsGUIThread
@@ -58,6 +64,19 @@ uiThread ctxMVar outSupl = do
   Gtk.widgetShowAll mainWindow
   _ <- Gtk.onButtonClicked suplementAcceptButton $
          sendSuplementalInfo appCtx outSupl
+  _ <- Gtk.onWidgetDestroy mainWindow Gtk.mainQuit
+  Gtk.main
+
+uiThread2 :: TMVar AppContext -> IO ()
+uiThread2 ctxMVar = do
+  setCurrentThreadAsGUIThread
+  _ <- Gtk.init Nothing
+  appCtx@(AppContext {..}) <- getGtkScene
+  atomically (putTMVar ctxMVar appCtx)
+  Gtk.labelSetText titleLabel "MusicScroll"
+  Gtk.widgetShowAll mainWindow
+  -- _ <- Gtk.onButtonClicked suplementAcceptButton $
+  --        sendSuplementalInfo appCtx outSupl
   _ <- Gtk.onWidgetDestroy mainWindow Gtk.mainQuit
   Gtk.main
 

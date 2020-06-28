@@ -1,17 +1,12 @@
 {-# language OverloadedStrings, TypeApplications, RecordWildCards #-}
-module MusicScroll.DatabaseUtils
-  ( getDBLyrics
-  , getDBSong
-  , insertDBLyrics
-  , getDBPath
-  , sqlDBCreate
-  ) where
+module MusicScroll.DatabaseUtils where
 
 import           Prelude hiding (null)
 import           Control.Applicative (Alternative(..))
 import           Control.Exception (evaluate)
 import           Control.Monad.Trans.Reader (ReaderT, ask)
 import           Control.Monad.IO.Class (MonadIO(..))
+import           Control.Concurrent.MVar
 import           Control.DeepSeq (rnf)
 import           Crypto.Hash (SHA1, hashUpdate, hashInit, hashFinalize)
 import           Data.ByteString (hGet, null)
@@ -40,11 +35,35 @@ getDBSong songUrl =
            let track = TrackInfo title artist songUrl
            in return (track, coerce lyrics)
 
+getDBLyrics2 :: SongFilePath -> ReaderT (MVar Connection) IO Lyrics
+getDBLyrics2 songUrl = snd <$> getDBSong2 songUrl
+
+getDBSong2 :: SongFilePath -> ReaderT (MVar Connection) IO (TrackInfo, Lyrics)
+getDBSong2 songUrl =
+  do mconn <- ask
+     liftIO $
+       do songHash <- fileHash songUrl
+          songRaw <- withMVar mconn
+                       (\conn -> query conn sqlExtractSong (Only songHash))
+          case (songRaw :: [ (Text, Text, Text) ]) of
+            [] -> empty
+            (title, artist, lyrics):_ ->
+              let track = TrackInfo title artist songUrl
+              in pure (track, coerce lyrics)
+
 insertDBLyrics :: TrackInfo -> Lyrics -> ReaderT Connection IO ()
 insertDBLyrics (TrackInfo {..}) lyrics = ask >>= \conn -> liftIO $
   do songHash <- fileHash tUrl
      let params = (songHash, tArtist, tTitle, coerce lyrics :: Text)
      execute conn sqlInsertSong params
+
+insertDBLyrics2 :: TrackInfo -> Lyrics -> ReaderT (MVar Connection) IO ()
+insertDBLyrics2 (TrackInfo {..}) lyrics =
+  ask >>= \mconn -> liftIO $
+    do songHash <- fileHash tUrl
+       let params = (songHash, tArtist, tTitle, coerce lyrics :: Text)
+       withMVar mconn $ \conn -> execute conn sqlInsertSong params
+
 
 updateDBLyrics :: TrackInfo -> Lyrics -> ReaderT Connection IO ()
 updateDBLyrics (TrackInfo {..}) lyrics = ask >>= \conn -> liftIO $

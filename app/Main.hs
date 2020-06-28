@@ -1,6 +1,6 @@
 module Main where
 
-import MusicScroll.RealMain (realMain)
+import MusicScroll.RealMain (realMain, realMain2)
 
 main :: IO ()
-main = realMain
+main = realMain2

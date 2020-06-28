@@ -1,5 +1,5 @@
 {-# language LambdaCase #-}
-module MusicScroll.MPRIS (dbusThread) where
+module MusicScroll.MPRIS (dbusThread, dbusThreadP) where
 
 import Control.Concurrent.STM (atomically)
 import Control.Concurrent.STM.TBQueue (TBQueue, writeTBQueue)
@@ -8,6 +8,8 @@ import Control.Monad ((=<<), forever)
 import Control.Monad.IO.Class (MonadIO(..))
 import Control.Monad.State.Class (gets)
 import Control.Monad.Trans.State (StateT, evalStateT)
+
+import Debug.Trace
 
 import Pipes as P
 import Pipes.Prelude as P
@@ -45,10 +47,14 @@ dbusThreadP trackout errorout = bracket connectSession disconnect
     loop = forever $ tryGetInfoP >>= \case
         Left (NoMusicClient _) -> changeMusicClientP
         Left NoSong ->
-          do runEffect $ yield (ErrorOn ENoSong) >-> toOutput errorout
+          do traceM "Recive1: antes enviar error"
+             runEffect $ yield (ErrorOn ENoSong) >-> toOutput errorout
+             traceM "Recive1: despues enviar error"
              waitForChangeP mediaPropChangeRule
         Right trackIdent ->
-          do runEffect $ yield trackIdent >-> toOutput trackout
+          do traceM "Recive1: antes enviar cancion"
+             runEffect $ yield trackIdent >-> toOutput trackout
+             traceM "Recive1: despues enviar cancion"
              waitForChangeP mediaPropChangeRule
 
 sendToLyricsPipeline :: TrackIdentifier -> StateT ConnState IO ()

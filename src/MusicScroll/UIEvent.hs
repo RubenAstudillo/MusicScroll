@@ -1,7 +1,7 @@
 {-# language OverloadedStrings, RecordWildCards, BangPatterns, PatternSynonyms #-}
 module MusicScroll.UIEvent where
 
-import           Control.Monad (unless)
+import           Control.Monad (unless, forever)
 import           Data.Maybe (isNothing)
 import           Data.Text (Text)
 import           Data.Text as T
@@ -10,6 +10,12 @@ import           Data.GI.Gtk.Threading (postGUISync)
 
 import           MusicScroll.TrackInfo (TrackInfo(..), TrackByPath(..))
 import           MusicScroll.Providers.Utils (Lyrics(..))
+
+import Pipes
+
+data SongByOrigin = DB | Web
+data SearchResult = GotLyric2 SongByOrigin TrackInfo Lyrics
+                  | ErrorOn2 ErrorCause
 
 data UIEvent = GotLyric TrackInfo Lyrics
              | ErrorOn ErrorCause
@@ -61,6 +67,13 @@ updateNewLyrics ctx@(AppContext {..}) (track, Lyrics singleLyrics) =
     lyricsBuffer <- Gtk.textViewGetBuffer lyricsTextView
     Gtk.textBufferSetText lyricsBuffer singleLyrics bytesToUpdate
     updateSuplementalGuess ctx (mempty, mempty)
+
+updateNewLyricsC :: AppContext -> Consumer SearchResult IO a
+updateNewLyricsC ctx = forever $ do
+  res <- await
+  liftIO $ case res of
+    GotLyric2 _ info lyr -> updateNewLyrics ctx (info, lyr)
+    ErrorOn2 cause -> updateErrorCause ctx cause
 
 updateErrorCause :: AppContext -> ErrorCause -> IO ()
 updateErrorCause ctx@(AppContext {..}) cause = postGUISync $
