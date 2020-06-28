@@ -53,7 +53,7 @@ tryGetInfo client busName = do
 tryGetInfoP :: (MonadState ConnStateP m, MonadIO m) =>
   m (Either TrackInfoError TrackIdentifier)
 tryGetInfoP = do
-  (ConnStateP client busName) <- get
+  (ConnStateP client busName _) <- get
   liftIO $ do
     metadata <- (first NoMusicClient) <$> getPropertyValue client
       (methodCall mediaObject mediaInterface "Metadata") {

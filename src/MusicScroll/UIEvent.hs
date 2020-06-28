@@ -2,11 +2,13 @@
 module MusicScroll.UIEvent where
 
 import           Control.Monad (unless, forever)
+-- import           Control.Monad.IO.Class (MonadIO(..))
 import           Data.Maybe (isNothing)
 import           Data.Text (Text)
 import           Data.Text as T
 import qualified GI.Gtk as Gtk
 import           Data.GI.Gtk.Threading (postGUISync)
+import           Control.Concurrent
 
 import           MusicScroll.TrackInfo (TrackInfo(..), TrackByPath(..))
 import           MusicScroll.Providers.Utils (Lyrics(..))
@@ -74,6 +76,7 @@ updateNewLyricsC ctx = forever $ do
   liftIO $ case res of
     GotLyric2 _ info lyr -> updateNewLyrics ctx (info, lyr)
     ErrorOn2 cause -> updateErrorCause ctx cause
+  liftIO . putStrLn $ "postGUI success"
 
 updateErrorCause :: AppContext -> ErrorCause -> IO ()
 updateErrorCause ctx@(AppContext {..}) cause = postGUISync $

@@ -29,4 +29,5 @@ realMain2 =
      tbcallback <- atomically (newTBQueue sizeOfQueue) -- unused
      withAsyncBound (uiThread2 tmvar) $ \uiA -> do
        ctx <- atomically (takeTMVar tmvar)
-       eventLoop ctx tbcallback
+       withAsync (eventLoop ctx tbcallback) $ \evA ->
+         void $ waitAnyCancel [uiA, evA]

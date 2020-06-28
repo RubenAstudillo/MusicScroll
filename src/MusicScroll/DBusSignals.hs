@@ -3,6 +3,7 @@ module MusicScroll.DBusSignals
   ( mediaPropChangeRule
   , waitForChange
   , waitForChangeP
+  , waitForChangeP2
   , changeMusicClient
   , changeMusicClientP
   ) where
@@ -47,18 +48,27 @@ waitForChange rule =
 
 waitForChangeP :: (MonadState ConnStateP m, MonadIO m) => MatchRule -> m ()
 waitForChangeP rule = do
-  (ConnStateP client bus) <- get
-  traceM $ "Recive2: " ++ show bus
-  traceM $ "Recive2: antes wait"
+  (ConnStateP client bus _) <- get
+  liftIO . traceEventIO $ "Recive2: " ++ show bus
+  liftIO . traceEventIO $ "Recive2: antes wait"
   liftIO $ do
      trigger       <- atomically newEmptyTMVar
      disarmHandler <- armSignal client trigger rule
-     traceIO "Recive2: arm"
+     putStrLn "Recive2: arm"
      _ <- atomically $ takeTMVar trigger
-     traceIO "Recive2: take"
+     putStrLn "Recive2: take"
      removeMatch client disarmHandler
-     traceIO "Recive2: remove"
-  traceM "Recive2: despues wait"
+     putStrLn "Recive2: remove"
+  liftIO . traceEventIO $ "Recive2: despues wait"
+
+waitForChangeP2 :: MatchRule -> StateT ConnStateP IO ()
+waitForChangeP2 rule =
+  do client <- gets cpClient
+     liftIO $ do
+       trigger       <- atomically newEmptyTMVar
+       disarmHandler <- armSignal client trigger rule
+       _ <- atomically $ takeTMVar trigger
+       removeMatch client disarmHandler
 
 armSignal :: Client -> TMVar () -> MatchRule -> IO SignalHandler
 armSignal client trigger rule =
@@ -76,11 +86,11 @@ changeMusicClient =
 
 changeMusicClientP :: (MonadState ConnStateP m, MonadIO m) => m ()
 changeMusicClientP =
-  do state@(ConnStateP client bus) <- get
+  do state@(ConnStateP client bus iter) <- get
      availableStatus <- liftIO $ traverse (checkName client) allBuses
      let taggedBuses = zip allBuses availableStatus
      case fst <$> find snd taggedBuses of
-       Just newBus -> put (ConnStateP client newBus)
+       Just newBus -> put (ConnStateP client newBus iter)
        Nothing     -> do waitForChangeP busNameAddedRule
                          changeMusicClientP
 
