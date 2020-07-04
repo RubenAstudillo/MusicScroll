@@ -1,5 +1,5 @@
 {-# language LambdaCase #-}
-module MusicScroll.MPRIS (dbusThread, dbusThreadP, dbusThreadP2) where
+module MusicScroll.MPRIS (dbusThread, dbusThreadP) where
 
 import Control.Concurrent.STM (atomically)
 import Control.Concurrent.STM.TBQueue (TBQueue, writeTBQueue)
@@ -39,56 +39,21 @@ dbusThread trackChan eventChan = bracket connectSession disconnect
         (Right trackIdent) -> sendToLyricsPipeline trackIdent
                               *> waitForChange mediaPropChangeRule
 
-dbusThreadP2 :: TBQueue TrackIdentifier -> TBQueue UIEvent -> IO a
-dbusThreadP2 trackout errorout = bracket connectSession disconnect
-  (evalStateT loop . newConnStateP)
-  where
-    loop :: StateT ConnStateP IO a
-    loop = forever $ do
-      printm "antes tryGetInfoP"
-      iterNum <- gets iter
-      liftIO (putStr "Iteracion numero " >> print iterNum)
-      modify (\s -> s { iter = succ iterNum })
-      tryGetInfoP >>= \case
-        Left (NoMusicClient _) ->
-          do printm "antes chageMusicP"
-             changeMusicClientP
-             printm "despues changeMusicP"
-        Left NoSong ->
-          do liftIO . putStrLn $ "Recive1: antes enviar error"
-             liftIO . atomically $ writeTBQueue errorout (ErrorOn ENoSong)
-             -- runEffect $ yield (ErrorOn ENoSong) >-> toOutput errorout
-             liftIO . putStrLn $ "Recive1: despues enviar error"
-             waitForChangeP2 mediaPropChangeRule
-        Right trackIdent ->
-          do liftIO . putStrLn $ "Recive1: antes enviar cancion"
-             liftIO . atomically $ writeTBQueue trackout trackIdent
-             -- runEffect $ yield trackIdent >-> toOutput trackout
-             liftIO . putStrLn $ "Recive1: despues enviar cancion"
-             waitForChangeP2 mediaPropChangeRule
-             liftIO . putStrLn $ "Recive1: despues de esperar"
-
-dbusThreadP :: Output TrackIdentifier -> Output UIEvent -> IO a
+dbusThreadP :: Output TrackIdentifier -> Output ErrorCause -> IO a
 dbusThreadP trackout errorout = bracket connectSession disconnect
   (evalStateT loop . newConnStateP)
   where
     loop :: StateT ConnStateP IO a
-    loop = forever $ printm "antes tryGetInfoP" >> tryGetInfoP >>= \case
-        Left (NoMusicClient _) -> printm "antes chageMusicP" *> changeMusicClientP *> printm "despues changeMusicP"
+    loop = forever $ tryGetInfoP >>= \case
+        Left (NoMusicClient _) -> changeMusicClientP
         Left NoSong ->
-          do liftIO . putStrLn $ "Recive1: antes enviar error"
-             liftIO . atomically $ send errorout (ErrorOn ENoSong)
-             -- runEffect $ yield (ErrorOn ENoSong) >-> toOutput errorout
-             liftIO . putStrLn $ "Recive1: despues enviar error"
+          do runEffect $ yield ENoSong >-> toOutput errorout
              waitForChangeP mediaPropChangeRule
         Right trackIdent ->
-          do liftIO . putStrLn $ "Recive1: antes enviar cancion"
-             liftIO . atomically $ send trackout trackIdent
-             -- runEffect $ yield trackIdent >-> toOutput trackout
-             liftIO . putStrLn $ "Recive1: despues enviar cancion"
+          do runEffect $ yield trackIdent >-> toOutput trackout
              waitForChangeP mediaPropChangeRule
 
-printm = liftIO . putStrLn
+-- printm = liftIO . putStrLn
 
 sendToLyricsPipeline :: TrackIdentifier -> StateT ConnState IO ()
 sendToLyricsPipeline trackIdent =

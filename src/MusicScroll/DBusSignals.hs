@@ -3,7 +3,6 @@ module MusicScroll.DBusSignals
   ( mediaPropChangeRule
   , waitForChange
   , waitForChangeP
-  , waitForChangeP2
   , changeMusicClient
   , changeMusicClientP
   ) where
@@ -49,26 +48,10 @@ waitForChange rule =
 waitForChangeP :: (MonadState ConnStateP m, MonadIO m) => MatchRule -> m ()
 waitForChangeP rule = do
   (ConnStateP client bus _) <- get
-  liftIO . traceEventIO $ "Recive2: " ++ show bus
-  liftIO . traceEventIO $ "Recive2: antes wait"
-  liftIO $ do
-     trigger       <- atomically newEmptyTMVar
-     disarmHandler <- armSignal client trigger rule
-     putStrLn "Recive2: arm"
-     _ <- atomically $ takeTMVar trigger
-     putStrLn "Recive2: take"
-     removeMatch client disarmHandler
-     putStrLn "Recive2: remove"
-  liftIO . traceEventIO $ "Recive2: despues wait"
-
-waitForChangeP2 :: MatchRule -> StateT ConnStateP IO ()
-waitForChangeP2 rule =
-  do client <- gets cpClient
-     liftIO $ do
-       trigger       <- atomically newEmptyTMVar
-       disarmHandler <- armSignal client trigger rule
-       _ <- atomically $ takeTMVar trigger
-       removeMatch client disarmHandler
+  liftIO $ do trigger       <- atomically newEmptyTMVar
+              disarmHandler <- armSignal client trigger rule
+              _ <- atomically $ takeTMVar trigger
+              removeMatch client disarmHandler
 
 armSignal :: Client -> TMVar () -> MatchRule -> IO SignalHandler
 armSignal client trigger rule =

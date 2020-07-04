@@ -70,13 +70,12 @@ updateNewLyrics ctx@(AppContext {..}) (track, Lyrics singleLyrics) =
     Gtk.textBufferSetText lyricsBuffer singleLyrics bytesToUpdate
     updateSuplementalGuess ctx (mempty, mempty)
 
-updateNewLyricsC :: AppContext -> Consumer SearchResult IO a
-updateNewLyricsC ctx = forever $ do
+dischargeOnUI :: AppContext -> Consumer SearchResult IO a
+dischargeOnUI ctx = forever $ do
   res <- await
   liftIO $ case res of
     GotLyric2 _ info lyr -> updateNewLyrics ctx (info, lyr)
     ErrorOn2 cause -> updateErrorCause ctx cause
-  liftIO . putStrLn $ "postGUI success"
 
 updateErrorCause :: AppContext -> ErrorCause -> IO ()
 updateErrorCause ctx@(AppContext {..}) cause = postGUISync $
