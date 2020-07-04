@@ -68,6 +68,7 @@ library
                        MusicScroll.ConnStateP
                        MusicScroll.DatabaseUtils
                        MusicScroll.EventLoop
+                       MusicScroll.Pipeline
                        MusicScroll.TrackSuplement
                        MusicScroll.Providers.AZLyrics
                        MusicScroll.Providers.MusiXMatch

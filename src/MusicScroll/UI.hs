@@ -1,5 +1,5 @@
 {-# language RecordWildCards, OverloadedStrings #-}
-module MusicScroll.UI (setupUIThread, uiThread2) where
+module MusicScroll.UI (setupUIThread, uiThread2, getSuplement) where
 
 import           Control.Concurrent.Async
                      (withAsyncBound, waitAnyCancel, withAsync)
@@ -17,6 +17,8 @@ import qualified GI.Gtk as Gtk
 
 import           MusicScroll.TrackSuplement
 import           MusicScroll.UIEvent
+import           MusicScroll.Pipeline
+import           MusicScroll.EventLoop
 
 import           Paths_musicScroll
 
@@ -67,16 +69,18 @@ uiThread ctxMVar outSupl = do
   _ <- Gtk.onWidgetDestroy mainWindow Gtk.mainQuit
   Gtk.main
 
-uiThread2 :: TMVar AppContext -> IO ()
-uiThread2 ctxMVar = do
+uiThread2 :: TMVar AppContext -> TBQueue UICallback -> IO ()
+uiThread2 ctxMVar outputTB = do
   setCurrentThreadAsGUIThread
   _ <- Gtk.init Nothing
   appCtx@(AppContext {..}) <- getGtkScene
   atomically (putTMVar ctxMVar appCtx)
   Gtk.labelSetText titleLabel "MusicScroll"
   Gtk.widgetShowAll mainWindow
-  -- _ <- Gtk.onButtonClicked suplementAcceptButton $
-  --        sendSuplementalInfo appCtx outSupl
+  _ <- Gtk.onButtonClicked suplementAcceptButton $
+       do supl <- getSuplement appCtx
+          let callback = suplementPipeline supl
+          atomically (writeTBQueue outputTB callback)
   _ <- Gtk.onWidgetDestroy mainWindow Gtk.mainQuit
   Gtk.main
 
@@ -92,10 +96,12 @@ uiUpdateThread appCtx input outSupl =
                          *> tryDefaultSupplement appCtx cause outSupl
 
 sendSuplementalInfo :: AppContext -> TBQueue TrackSuplement -> IO ()
-sendSuplementalInfo (AppContext {..}) suplChan =
-  do trackSupl <- TrackSuplement <$> Gtk.entryGetText titleSuplementEntry
-                                 <*> Gtk.entryGetText artistSuplementEntry
-     atomically (writeTBQueue suplChan trackSupl)
+sendSuplementalInfo ctx suplChan =
+  getSuplement ctx >>= atomically . writeTBQueue suplChan
+
+getSuplement :: AppContext -> IO TrackSuplement
+getSuplement (AppContext {..}) = TrackSuplement <$>
+  Gtk.entryGetText titleSuplementEntry <*> Gtk.entryGetText artistSuplementEntry
 
 tryDefaultSupplement
   :: AppContext -> ErrorCause -> TBQueue TrackSuplement -> IO ()

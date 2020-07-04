@@ -12,10 +12,11 @@ import Database.SQLite.Simple
 import Pipes.Concurrent
 
 import MusicScroll.LyricsPipeline
+import MusicScroll.Pipeline
 import MusicScroll.MPRIS
 import MusicScroll.UI
 import MusicScroll.EventLoop
-import MusicScroll.DatabaseUtils (getDBPath)
+import MusicScroll.DatabaseUtils (getDBPath, sqlDBCreate)
 
 realMain :: IO ()
 realMain =
@@ -31,12 +32,13 @@ realMain2 :: IO ()
 realMain2 = do
   appCtxTMvar  <- atomically newEmptyTMVar
   uiCallbackTB <- atomically (newTBQueue sizeOfQueue)
-  withAsyncBound (uiThread2 appCtxTMvar) $ \uiA -> do
+  withAsyncBound (uiThread2 appCtxTMvar uiCallbackTB) $ \uiA -> do
     (outTrack, inTrack) <- spawn (newest 1)
     (outErr, inErr)     <- spawn (newest 1)
     withAsync (dbusThreadP outTrack outErr) $ \dbusA -> do
       dbPath <- getDBPath
       bracket (open dbPath) close $ \conn -> do
+        execute_ conn sqlDBCreate
         mconn <- newMVar conn
         ctx   <- atomically (takeTMVar appCtxTMvar)
         let state = AppState ctx mconn inTrack inErr

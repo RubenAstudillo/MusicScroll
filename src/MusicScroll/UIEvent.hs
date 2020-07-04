@@ -71,7 +71,10 @@ updateNewLyrics ctx@(AppContext {..}) (track, Lyrics singleLyrics) =
     updateSuplementalGuess ctx (mempty, mempty)
 
 dischargeOnUI :: AppContext -> Consumer SearchResult IO a
-dischargeOnUI ctx = forever $ do
+dischargeOnUI ctx = forever (dischargeOnUISingle ctx)
+
+dischargeOnUISingle :: AppContext -> Consumer SearchResult IO ()
+dischargeOnUISingle ctx = do
   res <- await
   liftIO $ case res of
     GotLyric2 _ info lyr -> updateNewLyrics ctx (info, lyr)

@@ -10,7 +10,7 @@ import Control.Concurrent.STM.TBQueue ( TBQueue, readTBQueue, writeTBQueue,
 import Control.Applicative (Alternative(..))
 import Control.Exception (bracket)
 import Control.Monad.Trans.State (StateT, get, put, evalStateT)
-import Control.Monad.IO.Class (liftIO)
+import Control.Monad.IO.Class (MonadIO(..))
 import Control.Monad.Trans.Reader (ReaderT, runReaderT)
 import Control.Monad (forever, when)
 import Numeric.Natural (Natural)
@@ -78,6 +78,12 @@ mergeQueue (inputIdent, inputSupl) =
 
      pure newTrack
 
+cleanTrackP :: Functor m => Pipe TrackIdentifier TrackIdentifier m a
+cleanTrackP = PP.map cleanTrack
+
+mergeTrackSupl :: Functor m => TrackSuplement -> Pipe TrackIdentifier TrackInfo m a
+mergeTrackSupl supl = PP.map (suplement supl)
+
 getLyricsThread :: TBQueue TrackIdentifier -> TBQueue UIEvent -> IO a
 getLyricsThread input output =
   do dbPath <- getDBPath
@@ -95,7 +101,10 @@ getLyricsThread input output =
 getLyricsP :: MVar Connection -> Pipe TrackIdentifier SearchResult IO a
 getLyricsP connMvar = PP.mapM go
   where go :: TrackIdentifier -> IO SearchResult
-        go ident = runReaderT (either caseByPath2 caseByInfo2 ident) connMvar
+        go ident = runReaderT (either caseByPath2 caseByInfoGeneral ident) connMvar
+
+getLyricsFromWebP :: Pipe TrackInfo SearchResult IO a
+getLyricsFromWebP = PP.mapM caseByInfoWeb
 
 caseByInfo :: TrackInfo -> ReaderT Connection IO UIEvent
 caseByInfo track =
@@ -104,14 +113,27 @@ caseByInfo track =
                      <|> getLyricsFromWeb musiXMatchInstance track
   in (GotLyric track <$> tryGetLyrics) <|> pure (ErrorOn (NoLyricsOnWeb track))
 
-caseByInfo2 :: TrackInfo -> ReaderT (MVar Connection) IO SearchResult
-caseByInfo2 track =
-  let local = GotLyric2 DB track <$> getDBLyrics2 (tUrl track)
-      web = GotLyric2 Web track <$>
-        (getLyricsFromWeb2 azLyricsInstance track
-         <|> getLyricsFromWeb2 musiXMatchInstance track)
+caseByInfoGeneral :: TrackInfo -> ReaderT (MVar Connection) IO SearchResult
+caseByInfoGeneral track =
+  let local = caseByInfoLocal track
+      web = caseByInfoWeb track
       err = pure (ErrorOn2 (NoLyricsOnWeb track))
   in local <|> web <|> err
+
+caseByInfoWebP :: (MonadIO m, Alternative m) => TrackInfo -> m SearchResult
+caseByInfoWebP track =
+  let web = caseByInfoWeb track
+      err = pure (ErrorOn2 (NoLyricsOnWeb track))
+  in web <|> err
+
+caseByInfoLocal :: TrackInfo -> ReaderT (MVar Connection) IO SearchResult
+caseByInfoLocal track =
+  GotLyric2 DB track <$> getDBLyrics2 (tUrl track)
+
+caseByInfoWeb :: (MonadIO m, Alternative m) => TrackInfo -> m SearchResult
+caseByInfoWeb track = GotLyric2 Web track <$>
+  (getLyricsFromWeb2 azLyricsInstance track
+   <|> getLyricsFromWeb2 musiXMatchInstance track)
 
 caseByPath :: TrackByPath -> ReaderT Connection IO UIEvent
 caseByPath track =
