@@ -1,4 +1,3 @@
-{-# language ScopedTypeVariables #-}
 module MusicScroll.Pipeline where
 
 import Control.Concurrent.Async
@@ -10,7 +9,6 @@ import qualified Pipes.Prelude as PP
 import Data.Functor.Contravariant.Divisible
 
 import MusicScroll.LyricsPipeline
-import MusicScroll.DatabaseUtils (getDBPath)
 import MusicScroll.UIEvent (SearchResult(ErrorOn2), ErrorCause, AppContext(..), dischargeOnUI, dischargeOnUISingle)
 import MusicScroll.TrackInfo (TrackIdentifier)
 import MusicScroll.TrackSuplement
@@ -43,9 +41,6 @@ suplementPipeline supl (AppState ctx db _ signal) =
       pipeline = songP >-> mergeTrackSupl supl >-> getLyricsFromWebP
           >-> saveOnDb db >-> dischargeOnUISingle ctx
   in runEffect pipeline
-
-debugPS :: String -> Pipe a a IO b
-debugPS str = PP.chain (const (putStrLn str))
 
 songSpawn :: IO (Output a, Input a, Input a)
 songSpawn = do

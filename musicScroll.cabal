@@ -4,7 +4,7 @@ cabal-version:       >=1.10
 -- http://haskell.org/cabal/users-guide/
 
 name:                musicScroll
-version:             0.2.3.3
+version:             0.3.0.0
 synopsis:            Supply your tunes info without leaving your music player.
 description:         Automatically retrive the lyrics of of your current
                      song on SMPlayer/VLC and update it on each change. See the
@@ -54,7 +54,6 @@ library
                        deepseq,
                        pipes,
                        pipes-concurrency,
-                       pipes-safe,
                        contravariant
   exposed-modules:     MusicScroll.RealMain
   other-modules:       MusicScroll.UI
@@ -65,7 +64,6 @@ library
                        MusicScroll.UIEvent
                        MusicScroll.DBusNames
                        MusicScroll.DBusSignals
-                       MusicScroll.ConnState
                        MusicScroll.ConnStateP
                        MusicScroll.DatabaseUtils
                        MusicScroll.EventLoop

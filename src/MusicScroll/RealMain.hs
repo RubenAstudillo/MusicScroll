@@ -1,5 +1,5 @@
 {-# language ScopedTypeVariables #-}
-module MusicScroll.RealMain (realMain, realMain2) where
+module MusicScroll.RealMain (realMain) where
 
 import Control.Concurrent.Async (withAsync, withAsyncBound, waitAnyCancel)
 import Control.Concurrent.STM (atomically)
@@ -19,19 +19,9 @@ import MusicScroll.EventLoop
 import MusicScroll.DatabaseUtils (getDBPath, sqlDBCreate)
 
 realMain :: IO ()
-realMain =
-  do dbusSongChan <- atomically (newTBQueue sizeOfQueue)
-     eventChan    <- atomically (newTBQueue sizeOfQueue)
-     suplChan     <- atomically (newTBQueue sizeOfQueue)
-     withAsync (setupUIThread eventChan suplChan) $ \setupUIA ->
-       withAsync (lyricsThread (dbusSongChan, suplChan) eventChan) $ \lyricsA ->
-         withAsync (dbusThread dbusSongChan eventChan) $ \dbusA ->
-           void $ waitAnyCancel [setupUIA, lyricsA, dbusA]
-
-realMain2 :: IO ()
-realMain2 = do
+realMain = do
   appCtxTMvar  <- atomically newEmptyTMVar
-  uiCallbackTB <- atomically (newTBQueue sizeOfQueue)
+  uiCallbackTB <- atomically (newTBQueue 5)
   withAsyncBound (uiThread2 appCtxTMvar uiCallbackTB) $ \uiA -> do
     (trackin, errorin, singleProd, trackout, errorout) <- musicSpawn
     withAsync (dbusThreadP trackout errorout) $ \dbusA -> do

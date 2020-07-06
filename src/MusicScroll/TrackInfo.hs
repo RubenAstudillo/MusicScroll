@@ -4,14 +4,11 @@ module MusicScroll.TrackInfo where
 import           Prelude hiding (readFile, lookup)
 import           Control.Applicative (Alternative(..))
 import           Control.Monad (join)
-import           Control.Monad.IO.Class (MonadIO(..))
 import           Control.Monad.State.Class (MonadState(..))
 import           DBus
 import           DBus.Client
 import           Data.Bifunctor (first, bimap)
-import           Data.Function ((&))
-import           Data.Map.Strict (Map)
-import qualified Data.Map.Strict as Map
+import           Data.Map.Strict (Map, lookup)
 import           Data.Text (Text)
 import qualified Data.Text as T
 import           Data.Char (isAlpha)
@@ -42,18 +39,10 @@ data TrackInfoError = NoMusicClient MethodError
 -- An exception here means that either there is not a music player
 -- running or what it is running it's not a song. Either way we should
 -- wait for a change on the dbus connection to try again.
-tryGetInfo :: Client -> BusName -> IO (Either TrackInfoError TrackIdentifier)
-tryGetInfo client busName = do
-    metadata <- getPropertyValue client
-                  (methodCall mediaObject mediaInterface "Metadata") {
-                    methodCallDestination = pure busName
-                  } & fmap (first NoMusicClient)
-    return . join $ obtainTrackInfo <$> metadata
-
 tryGetInfoP :: (MonadState ConnStateP m, MonadIO m) =>
   m (Either TrackInfoError TrackIdentifier)
 tryGetInfoP = do
-  (ConnStateP client busName _) <- get
+  (ConnStateP client busName) <- get
   liftIO $ do
     metadata <- (first NoMusicClient) <$> getPropertyValue client
       (methodCall mediaObject mediaInterface "Metadata") {
@@ -63,12 +52,12 @@ tryGetInfoP = do
 
 obtainTrackInfo :: Map Text Variant -> Either TrackInfoError TrackIdentifier
 obtainTrackInfo metadata =
-  let lookup :: IsVariant a => Text -> Maybe a
-      lookup name = Map.lookup name metadata >>= fromVariant
+  let lookup' :: IsVariant a => Text -> Maybe a
+      lookup' name = lookup name metadata >>= fromVariant
 
-      mTitle  = lookup "xesam:title"
-      mArtist = xesamArtistFix (lookup "xesam:artist") (lookup "xesam:artist")
-      mUrl    = vlcFix <$> lookup "xesam:url"
+      mTitle  = lookup' "xesam:title"
+      mArtist = xesamArtistFix (lookup' "xesam:artist") (lookup' "xesam:artist")
+      mUrl    = vlcFix <$> lookup' "xesam:url"
 
       trackInfo :: Maybe TrackInfo
       trackInfo = TrackInfo <$> mTitle <*> mArtist <*> mUrl

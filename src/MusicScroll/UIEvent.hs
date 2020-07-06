@@ -2,25 +2,19 @@
 module MusicScroll.UIEvent where
 
 import           Control.Monad (unless, forever)
--- import           Control.Monad.IO.Class (MonadIO(..))
+import           Data.GI.Gtk.Threading (postGUISync)
 import           Data.Maybe (isNothing)
-import           Data.Text (Text)
 import           Data.Text as T
 import qualified GI.Gtk as Gtk
-import           Data.GI.Gtk.Threading (postGUISync)
-import           Control.Concurrent
+import Pipes
 
 import           MusicScroll.TrackInfo (TrackInfo(..), TrackByPath(..))
 import           MusicScroll.Providers.Utils (Lyrics(..))
 
-import Pipes
 
 data SongByOrigin = DB | Web
 data SearchResult = GotLyric2 SongByOrigin TrackInfo Lyrics
                   | ErrorOn2 ErrorCause
-
-data UIEvent = GotLyric TrackInfo Lyrics
-             | ErrorOn ErrorCause
 
 data ErrorCause = NotOnDB TrackByPath | NoLyricsOnWeb TrackInfo | ENoSong
 

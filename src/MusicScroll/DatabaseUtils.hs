@@ -20,21 +20,6 @@ import           System.Directory (createDirectory)
 import           MusicScroll.TrackInfo (TrackInfo(..), SongFilePath)
 import           MusicScroll.Providers.Utils (Lyrics(..))
 
-getDBLyrics :: SongFilePath -> ReaderT Connection IO Lyrics
-getDBLyrics songUrl = snd <$> getDBSong songUrl
-
-getDBSong :: SongFilePath -> ReaderT Connection IO (TrackInfo, Lyrics)
-getDBSong songUrl =
-  do conn <- ask
-     liftIO $ do
-       songHash <- fileHash songUrl
-       songRaw <- query conn sqlExtractSong (Only songHash)
-       case (songRaw :: [ (Text, Text, Text) ]) of
-         [] -> empty
-         (title, artist, lyrics):_ ->
-           let track = TrackInfo title artist songUrl
-           in return (track, coerce lyrics)
-
 getDBLyrics2 :: SongFilePath -> ReaderT (MVar Connection) IO Lyrics
 getDBLyrics2 songUrl = snd <$> getDBSong2 songUrl
 
@@ -50,12 +35,6 @@ getDBSong2 songUrl =
             (title, artist, lyrics):_ ->
               let track = TrackInfo title artist songUrl
               in pure (track, coerce lyrics)
-
-insertDBLyrics :: TrackInfo -> Lyrics -> ReaderT Connection IO ()
-insertDBLyrics (TrackInfo {..}) lyrics = ask >>= \conn -> liftIO $
-  do songHash <- fileHash tUrl
-     let params = (songHash, tArtist, tTitle, coerce lyrics :: Text)
-     execute conn sqlInsertSong params
 
 insertDBLyrics2 :: TrackInfo -> Lyrics -> ReaderT (MVar Connection) IO ()
 insertDBLyrics2 (TrackInfo {..}) lyrics =

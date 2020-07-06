@@ -3,9 +3,7 @@ module MusicScroll.Providers.AZLyrics (azLyricsInstance) where
 
 import Control.Category hiding ((.), id)
 import Data.Maybe (catMaybes)
-import Data.Text (Text)
 import Data.Text as T hiding (filter, tail, map, mapAccumL)
--- import Data.Text.IO as T (readFile)
 import Data.Traversable (mapAccumL)
 import Network.HTTP.Req
 import Text.HTML.TagSoup
