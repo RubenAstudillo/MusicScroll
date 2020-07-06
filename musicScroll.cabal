@@ -54,7 +54,8 @@ library
                        deepseq,
                        pipes,
                        pipes-concurrency,
-                       pipes-safe
+                       pipes-safe,
+                       contravariant
   exposed-modules:     MusicScroll.RealMain
   other-modules:       MusicScroll.UI
                        MusicScroll.MPRIS

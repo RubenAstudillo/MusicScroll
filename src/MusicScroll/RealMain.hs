@@ -33,15 +33,14 @@ realMain2 = do
   appCtxTMvar  <- atomically newEmptyTMVar
   uiCallbackTB <- atomically (newTBQueue sizeOfQueue)
   withAsyncBound (uiThread2 appCtxTMvar uiCallbackTB) $ \uiA -> do
-    (outTrack, inTrack1, inTrack2) <- songSpawn
-    (outErr, inErr)     <- spawn (newest 1)
-    withAsync (dbusThreadP outTrack outErr) $ \dbusA -> do
+    (trackin, errorin, singleProd, trackout, errorout) <- musicSpawn
+    withAsync (dbusThreadP trackout errorout) $ \dbusA -> do
       dbPath <- getDBPath
       bracket (open dbPath) close $ \conn -> do
         execute_ conn sqlDBCreate
         mconn <- newMVar conn
         ctx   <- atomically (takeTMVar appCtxTMvar)
-        let state = AppState ctx mconn inTrack1 inTrack2 inErr
+        let state = AppState ctx mconn (trackin, errorin) singleProd
         let evState = EventLoopState state uiCallbackTB Nothing
         withAsync (staticPipeline state) $ \staticA ->
           withAsync (eventLoop evState) $ \evLoopA ->
