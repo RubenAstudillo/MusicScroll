@@ -42,13 +42,6 @@ suplementPipeline supl (AppState ctx db _ signal) =
           >-> saveOnDb db >-> dischargeOnUISingle ctx
   in runEffect pipeline
 
-songSpawn :: IO (Output a, Input a, Input a)
-songSpawn = do
-  (out1, in1) <- spawn (newest 1)
-  (out2, in2) <- spawn (newest 1)
-  let joinOut = out1 <> out2
-  pure $ (joinOut, in1, in2)
-
 -- | Use the `Output` Divisible instance to create a network. These are
 --   1) An output for songs.
 --   2) One for errors
