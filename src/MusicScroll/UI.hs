@@ -10,7 +10,7 @@ import           Data.Text (pack)
 import qualified GI.Gtk as Gtk
 
 import           MusicScroll.TrackSuplement
-import           MusicScroll.UIEvent
+import           MusicScroll.UIContext
 import           MusicScroll.Pipeline
 import           MusicScroll.EventLoop
 
@@ -18,7 +18,7 @@ import           Paths_musicScroll
 
 
 -- Remember to use Gtk.init Nothing before calling this.
-getGtkScene :: IO AppContext
+getGtkScene :: IO UIContext
 getGtkScene = do
   file    <- getDataFileName "app.glade"
   builder <- Gtk.builderNewFromFile (pack file)
@@ -26,7 +26,7 @@ getGtkScene = do
   let getWidget wid id0 =
         Gtk.builderGetObject builder id0
           >>= Gtk.castTo wid . fromJust >>= return . fromJust
-  AppContext <$> getWidget Gtk.Window "mainWindow"
+  UIContext <$> getWidget Gtk.Window "mainWindow"
              <*> getWidget Gtk.Label "titleLabel"
              <*> getWidget Gtk.Label "artistLabel"
              <*> getWidget Gtk.TextView "lyricsTextView"
@@ -36,11 +36,11 @@ getGtkScene = do
              <*> getWidget Gtk.Button "suplementAcceptButton"
              <*> getWidget Gtk.CheckButton "keepArtistNameCheck"
 
-uiThread :: TMVar AppContext -> TBQueue UICallback -> IO ()
+uiThread :: TMVar UIContext -> TBQueue UICallback -> IO ()
 uiThread ctxMVar outputTB = do
   setCurrentThreadAsGUIThread
   _ <- Gtk.init Nothing
-  appCtx@(AppContext {..}) <- getGtkScene
+  appCtx@(UIContext {..}) <- getGtkScene
   atomically (putTMVar ctxMVar appCtx)
   Gtk.labelSetText titleLabel "MusicScroll"
   Gtk.widgetShowAll mainWindow
@@ -51,14 +51,14 @@ uiThread ctxMVar outputTB = do
   _ <- Gtk.onWidgetDestroy mainWindow Gtk.mainQuit
   Gtk.main
 
-getSuplement :: AppContext -> IO TrackSuplement
-getSuplement (AppContext {..}) = TrackSuplement <$>
+getSuplement :: UIContext -> IO TrackSuplement
+getSuplement (UIContext {..}) = TrackSuplement <$>
   Gtk.entryGetText titleSuplementEntry <*> Gtk.entryGetText artistSuplementEntry
 
 -- TODO: Recover this functionality
 -- tryDefaultSupplement
---   :: AppContext -> ErrorCause -> TBQueue TrackSuplement -> IO ()
--- tryDefaultSupplement ctx@(AppContext {..}) cause suplChan =
+--   :: UIContext -> ErrorCause -> TBQueue TrackSuplement -> IO ()
+-- tryDefaultSupplement ctx@(UIContext {..}) cause suplChan =
 --   do shouldMaintainArtistSupl <- Gtk.getToggleButtonActive keepArtistNameCheck
 --      validGuessArtist <- (/= mempty) <$> Gtk.entryGetText artistSuplementEntry
 --      case cause of

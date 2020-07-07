@@ -61,7 +61,7 @@ library
                        MusicScroll.Web
                        MusicScroll.LyricsPipeline
                        MusicScroll.TrackInfo
-                       MusicScroll.UIEvent
+                       MusicScroll.UIContext
                        MusicScroll.DBusNames
                        MusicScroll.DBusSignals
                        MusicScroll.ConnState

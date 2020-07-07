@@ -9,7 +9,7 @@ import qualified Pipes.Prelude as PP
 import Data.Functor.Contravariant.Divisible
 
 import MusicScroll.LyricsPipeline
-import MusicScroll.UIEvent (AppContext(..), dischargeOnUI, dischargeOnUISingle)
+import MusicScroll.UIContext (UIContext(..), dischargeOnUI, dischargeOnUISingle)
 import MusicScroll.TrackInfo (TrackIdentifier)
 import MusicScroll.TrackSuplement
 
@@ -17,7 +17,7 @@ import MusicScroll.TrackSuplement
 data DBusSignal = Song TrackIdentifier | Error ErrorCause | NoInfo
 
 data AppState = AppState
-  { apUI :: AppContext
+  { apUI :: UIContext
   , apDB :: MVar Connection -- ^ Enforce mutual exclusion zone
   , apStaticinput :: (Input TrackIdentifier, Input ErrorCause)
   , apEphemeralInput :: Producer DBusSignal IO () -- ^ Emits only once.

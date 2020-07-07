@@ -1,5 +1,5 @@
 {-# language OverloadedStrings, RecordWildCards, BangPatterns #-}
-module MusicScroll.UIEvent where
+module MusicScroll.UIContext where
 
 import           Control.Monad (unless, forever)
 import           Data.GI.Gtk.Threading (postGUISync)
@@ -12,7 +12,7 @@ import MusicScroll.TrackInfo (TrackInfo(..), TrackByPath(..))
 import MusicScroll.Providers.Utils (Lyrics(..))
 import MusicScroll.LyricsPipeline
 
-data AppContext = AppContext
+data UIContext = UIContext
   { mainWindow     :: Gtk.Window
   , titleLabel     :: Gtk.Label
   , artistLabel    :: Gtk.Label
@@ -44,8 +44,8 @@ extractGuess (NotOnDB (TrackByPath {..})) =
 extractGuess _ = Nothing
 
 -- | Only usable inside a gtk context
-updateNewLyrics :: AppContext -> (TrackInfo, Lyrics) -> IO ()
-updateNewLyrics ctx@(AppContext {..}) (track, Lyrics singleLyrics) =
+updateNewLyrics :: UIContext -> (TrackInfo, Lyrics) -> IO ()
+updateNewLyrics ctx@(UIContext {..}) (track, Lyrics singleLyrics) =
   let !bytesToUpdate = fromIntegral $ T.length singleLyrics
   in postGUISync $ do
     Gtk.labelSetText errorLabel mempty
@@ -55,18 +55,18 @@ updateNewLyrics ctx@(AppContext {..}) (track, Lyrics singleLyrics) =
     Gtk.textBufferSetText lyricsBuffer singleLyrics bytesToUpdate
     updateSuplementalGuess ctx (mempty, mempty)
 
-dischargeOnUI :: AppContext -> Consumer SearchResult IO a
+dischargeOnUI :: UIContext -> Consumer SearchResult IO a
 dischargeOnUI ctx = forever (dischargeOnUISingle ctx)
 
-dischargeOnUISingle :: AppContext -> Consumer SearchResult IO ()
+dischargeOnUISingle :: UIContext -> Consumer SearchResult IO ()
 dischargeOnUISingle ctx = do
   res <- await
   liftIO $ case res of
     GotLyric _ info lyr -> updateNewLyrics ctx (info, lyr)
     ErrorOn cause -> updateErrorCause ctx cause
 
-updateErrorCause :: AppContext -> ErrorCause -> IO ()
-updateErrorCause ctx@(AppContext {..}) cause = postGUISync $
+updateErrorCause :: UIContext -> ErrorCause -> IO ()
+updateErrorCause ctx@(UIContext {..}) cause = postGUISync $
   do Gtk.labelSetText titleLabel "No Song available"
      Gtk.labelSetText artistLabel mempty
      lyricsBuffer <- Gtk.textViewGetBuffer lyricsTextView
@@ -74,8 +74,8 @@ updateErrorCause ctx@(AppContext {..}) cause = postGUISync $
      Gtk.labelSetText errorLabel (errorMsg cause)
      maybe (return ()) (updateSuplementalGuess ctx) (extractGuess cause)
 
-updateSuplementalGuess :: AppContext -> (Text, Text) -> IO ()
-updateSuplementalGuess (AppContext {..}) (guessTitle, guessArtist) =
+updateSuplementalGuess :: UIContext -> (Text, Text) -> IO ()
+updateSuplementalGuess (UIContext {..}) (guessTitle, guessArtist) =
   do Gtk.entrySetText titleSuplementEntry guessTitle
      shouldMaintainArtistSupl <- Gtk.getToggleButtonActive keepArtistNameCheck
      unless shouldMaintainArtistSupl $
