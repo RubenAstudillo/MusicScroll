@@ -9,7 +9,7 @@ import qualified Pipes.Prelude as PP
 import Data.Functor.Contravariant.Divisible
 
 import MusicScroll.LyricsPipeline
-import MusicScroll.UIEvent (SearchResult(ErrorOn2), ErrorCause, AppContext(..), dischargeOnUI, dischargeOnUISingle)
+import MusicScroll.UIEvent (SearchResult(ErrorOn), ErrorCause, AppContext(..), dischargeOnUI, dischargeOnUISingle)
 import MusicScroll.TrackInfo (TrackIdentifier)
 import MusicScroll.TrackSuplement
 
@@ -29,7 +29,7 @@ staticPipeline (AppState ctx db (dbusTrack, dbusErr) _) =
       errP  = fromInput dbusErr
       songPipe = songP >-> noRepeatedFilter >-> cleanTrackP >->
         getLyricsP db >-> saveOnDb db >-> dischargeOnUI ctx
-      errorPipe = errP >-> PP.map ErrorOn2 >-> dischargeOnUI ctx
+      errorPipe = errP >-> PP.map ErrorOn >-> dischargeOnUI ctx
   in withAsync (runEffect songPipe) $ \songA ->
        withAsync (runEffect errorPipe) $ \errorA ->
          void $ waitAnyCancel [ songA, errorA ]

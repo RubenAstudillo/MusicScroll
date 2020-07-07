@@ -22,9 +22,9 @@ realMain :: IO ()
 realMain = do
   appCtxTMvar  <- atomically newEmptyTMVar
   uiCallbackTB <- atomically (newTBQueue 5)
-  withAsyncBound (uiThread2 appCtxTMvar uiCallbackTB) $ \uiA -> do
+  withAsyncBound (uiThread appCtxTMvar uiCallbackTB) $ \uiA -> do
     (trackin, errorin, singleProd, trackout, errorout) <- musicSpawn
-    withAsync (dbusThreadP trackout errorout) $ \dbusA -> do
+    withAsync (dbusThread trackout errorout) $ \dbusA -> do
       dbPath <- getDBPath
       bracket (open dbPath) close $ \conn -> do
         execute_ conn sqlDBCreate

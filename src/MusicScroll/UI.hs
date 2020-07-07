@@ -1,5 +1,5 @@
 {-# language RecordWildCards, OverloadedStrings #-}
-module MusicScroll.UI (uiThread2, getSuplement) where
+module MusicScroll.UI (uiThread, getSuplement) where
 
 import           Control.Concurrent.STM (atomically)
 import           Control.Concurrent.STM.TBQueue (TBQueue, writeTBQueue)
@@ -23,8 +23,8 @@ getGtkScene = do
   file    <- getDataFileName "app.glade"
   builder <- Gtk.builderNewFromFile (pack file)
   -- We *know* these ids are defined
-  let getWidget wid id =
-        Gtk.builderGetObject builder id
+  let getWidget wid id0 =
+        Gtk.builderGetObject builder id0
           >>= Gtk.castTo wid . fromJust >>= return . fromJust
   AppContext <$> getWidget Gtk.Window "mainWindow"
              <*> getWidget Gtk.Label "titleLabel"
@@ -36,8 +36,8 @@ getGtkScene = do
              <*> getWidget Gtk.Button "suplementAcceptButton"
              <*> getWidget Gtk.CheckButton "keepArtistNameCheck"
 
-uiThread2 :: TMVar AppContext -> TBQueue UICallback -> IO ()
-uiThread2 ctxMVar outputTB = do
+uiThread :: TMVar AppContext -> TBQueue UICallback -> IO ()
+uiThread ctxMVar outputTB = do
   setCurrentThreadAsGUIThread
   _ <- Gtk.init Nothing
   appCtx@(AppContext {..}) <- getGtkScene

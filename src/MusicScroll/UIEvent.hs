@@ -13,8 +13,8 @@ import           MusicScroll.Providers.Utils (Lyrics(..))
 
 
 data SongByOrigin = DB | Web
-data SearchResult = GotLyric2 SongByOrigin TrackInfo Lyrics
-                  | ErrorOn2 ErrorCause
+data SearchResult = GotLyric SongByOrigin TrackInfo Lyrics
+                  | ErrorOn ErrorCause
 
 data ErrorCause = NotOnDB TrackByPath | NoLyricsOnWeb TrackInfo | ENoSong
 
@@ -71,8 +71,8 @@ dischargeOnUISingle :: AppContext -> Consumer SearchResult IO ()
 dischargeOnUISingle ctx = do
   res <- await
   liftIO $ case res of
-    GotLyric2 _ info lyr -> updateNewLyrics ctx (info, lyr)
-    ErrorOn2 cause -> updateErrorCause ctx cause
+    GotLyric _ info lyr -> updateNewLyrics ctx (info, lyr)
+    ErrorOn cause -> updateErrorCause ctx cause
 
 updateErrorCause :: AppContext -> ErrorCause -> IO ()
 updateErrorCause ctx@(AppContext {..}) cause = postGUISync $

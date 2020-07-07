@@ -45,31 +45,31 @@ caseByInfoGeneral :: TrackInfo -> ReaderT (MVar Connection) IO SearchResult
 caseByInfoGeneral track =
   let local = caseByInfoLocal track
       web = caseByInfoWeb track
-      err = pure (ErrorOn2 (NoLyricsOnWeb track))
+      err = pure (ErrorOn (NoLyricsOnWeb track))
   in local <|> web <|> err
 
 caseByInfoWebP :: (MonadIO m, Alternative m) => TrackInfo -> m SearchResult
 caseByInfoWebP track =
   let web = caseByInfoWeb track
-      err = pure (ErrorOn2 (NoLyricsOnWeb track))
+      err = pure (ErrorOn (NoLyricsOnWeb track))
   in web <|> err
 
 caseByInfoLocal :: TrackInfo -> ReaderT (MVar Connection) IO SearchResult
 caseByInfoLocal track =
-  GotLyric2 DB track <$> getDBLyrics2 (tUrl track)
+  GotLyric DB track <$> getDBLyrics (tUrl track)
 
 caseByInfoWeb :: (MonadIO m, Alternative m) => TrackInfo -> m SearchResult
-caseByInfoWeb track = GotLyric2 Web track <$>
+caseByInfoWeb track = GotLyric Web track <$>
   (getLyricsFromWeb2 azLyricsInstance track
    <|> getLyricsFromWeb2 musiXMatchInstance track)
 
 caseByPath2 :: TrackByPath -> ReaderT (MVar Connection) IO SearchResult
 caseByPath2 track =
-  ((uncurry (GotLyric2 DB)) <$> getDBSong2 (tpPath track)) <|>
-  pure (ErrorOn2 (NotOnDB track))
+  ((uncurry (GotLyric DB)) <$> getDBSong (tpPath track)) <|>
+  pure (ErrorOn (NotOnDB track))
 
 saveOnDb :: MVar Connection -> Pipe SearchResult SearchResult IO a
 saveOnDb mconn = PP.chain go
   where go :: SearchResult -> IO ()
-        go (GotLyric2 Web info lyr) = runReaderT (insertDBLyrics2 info lyr) mconn
+        go (GotLyric Web info lyr) = runReaderT (insertDBLyrics2 info lyr) mconn
         go _otherwise = pure ()

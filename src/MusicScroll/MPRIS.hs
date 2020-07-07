@@ -1,5 +1,5 @@
 {-# language LambdaCase #-}
-module MusicScroll.MPRIS (dbusThreadP) where
+module MusicScroll.MPRIS (dbusThread) where
 
 import Control.Exception (bracket)
 import Control.Monad (forever)
@@ -13,12 +13,12 @@ import MusicScroll.DBusSignals
 import MusicScroll.ConnState
 import MusicScroll.UIEvent
 
-dbusThreadP :: Output TrackIdentifier -> Output ErrorCause -> IO a
-dbusThreadP trackout errorout = bracket connectSession disconnect
+dbusThread :: Output TrackIdentifier -> Output ErrorCause -> IO a
+dbusThread trackout errorout = bracket connectSession disconnect
   (evalStateT loop . newConnState)
   where
     loop :: StateT ConnState IO a
-    loop = forever $ tryGetInfoP >>= \case
+    loop = forever $ tryGetInfo >>= \case
         Left (NoMusicClient _) -> changeMusicClientP
         Left NoSong ->
           do runEffect $ yield ENoSong >-> toOutput errorout

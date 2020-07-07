@@ -39,9 +39,9 @@ data TrackInfoError = NoMusicClient MethodError
 -- An exception here means that either there is not a music player
 -- running or what it is running it's not a song. Either way we should
 -- wait for a change on the dbus connection to try again.
-tryGetInfoP :: (MonadState ConnState m, MonadIO m) =>
+tryGetInfo :: (MonadState ConnState m, MonadIO m) =>
   m (Either TrackInfoError TrackIdentifier)
-tryGetInfoP = do
+tryGetInfo = do
   (ConnState client busName) <- get
   liftIO $ do
     metadata <- (first NoMusicClient) <$> getPropertyValue client

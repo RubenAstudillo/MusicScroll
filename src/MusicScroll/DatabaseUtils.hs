@@ -20,11 +20,11 @@ import           System.Directory (createDirectory)
 import           MusicScroll.TrackInfo (TrackInfo(..), SongFilePath)
 import           MusicScroll.Providers.Utils (Lyrics(..))
 
-getDBLyrics2 :: SongFilePath -> ReaderT (MVar Connection) IO Lyrics
-getDBLyrics2 songUrl = snd <$> getDBSong2 songUrl
+getDBLyrics :: SongFilePath -> ReaderT (MVar Connection) IO Lyrics
+getDBLyrics songUrl = snd <$> getDBSong songUrl
 
-getDBSong2 :: SongFilePath -> ReaderT (MVar Connection) IO (TrackInfo, Lyrics)
-getDBSong2 songUrl =
+getDBSong :: SongFilePath -> ReaderT (MVar Connection) IO (TrackInfo, Lyrics)
+getDBSong songUrl =
   do mconn <- ask
      liftIO $
        do songHash <- fileHash songUrl
