@@ -14,7 +14,7 @@ import qualified Data.Text as T
 import           Data.Char (isAlpha)
 
 import           MusicScroll.DBusNames
-import           MusicScroll.ConnStateP
+import           MusicScroll.ConnState
 
 import Pipes
 
@@ -39,10 +39,10 @@ data TrackInfoError = NoMusicClient MethodError
 -- An exception here means that either there is not a music player
 -- running or what it is running it's not a song. Either way we should
 -- wait for a change on the dbus connection to try again.
-tryGetInfoP :: (MonadState ConnStateP m, MonadIO m) =>
+tryGetInfoP :: (MonadState ConnState m, MonadIO m) =>
   m (Either TrackInfoError TrackIdentifier)
 tryGetInfoP = do
-  (ConnStateP client busName) <- get
+  (ConnState client busName) <- get
   liftIO $ do
     metadata <- (first NoMusicClient) <$> getPropertyValue client
       (methodCall mediaObject mediaInterface "Metadata") {

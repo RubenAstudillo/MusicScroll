@@ -1,13 +1,13 @@
-module MusicScroll.ConnStateP where
+module MusicScroll.ConnState where
 
 import DBus (BusName)
 import DBus.Client (Client)
 import MusicScroll.DBusNames
 
-data ConnStateP = ConnStateP
+data ConnState = ConnState
   { cpClient        :: Client
   , cpBusActive     :: BusName
   }
 
-newConnStateP :: Client -> ConnStateP
-newConnStateP c = ConnStateP c vlcBus
+newConnState :: Client -> ConnState
+newConnState c = ConnState c vlcBus

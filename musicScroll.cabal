@@ -64,7 +64,7 @@ library
                        MusicScroll.UIEvent
                        MusicScroll.DBusNames
                        MusicScroll.DBusSignals
-                       MusicScroll.ConnStateP
+                       MusicScroll.ConnState
                        MusicScroll.DatabaseUtils
                        MusicScroll.EventLoop
                        MusicScroll.Pipeline

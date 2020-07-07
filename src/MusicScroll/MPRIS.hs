@@ -10,14 +10,14 @@ import Pipes.Concurrent
 
 import MusicScroll.TrackInfo
 import MusicScroll.DBusSignals
-import MusicScroll.ConnStateP
+import MusicScroll.ConnState
 import MusicScroll.UIEvent
 
 dbusThreadP :: Output TrackIdentifier -> Output ErrorCause -> IO a
 dbusThreadP trackout errorout = bracket connectSession disconnect
-  (evalStateT loop . newConnStateP)
+  (evalStateT loop . newConnState)
   where
-    loop :: StateT ConnStateP IO a
+    loop :: StateT ConnState IO a
     loop = forever $ tryGetInfoP >>= \case
         Left (NoMusicClient _) -> changeMusicClientP
         Left NoSong ->
