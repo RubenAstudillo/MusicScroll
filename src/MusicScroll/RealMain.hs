@@ -2,16 +2,14 @@
 module MusicScroll.RealMain (realMain) where
 
 import Control.Concurrent.Async (withAsync, withAsyncBound, waitAnyCancel)
-import Control.Concurrent.STM (atomically)
-import Control.Concurrent.STM.TBQueue (newTBQueue, TBQueue)
+import Control.Concurrent.STM.TBQueue (newTBQueue)
 import Control.Concurrent.STM.TMVar
 import Control.Concurrent.MVar
 import Data.Functor (void)
-import Control.Exception (bracket, catch, SomeException(..))
+import Control.Exception (bracket)
 import Database.SQLite.Simple
 import Pipes.Concurrent
 
-import MusicScroll.LyricsPipeline
 import MusicScroll.Pipeline
 import MusicScroll.MPRIS
 import MusicScroll.UI

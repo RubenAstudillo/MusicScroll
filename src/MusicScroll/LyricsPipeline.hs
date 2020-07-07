@@ -36,7 +36,7 @@ mergeTrackSupl supl = PP.map (suplement supl)
 getLyricsP :: MVar Connection -> Pipe TrackIdentifier SearchResult IO a
 getLyricsP connMvar = PP.mapM go
   where go :: TrackIdentifier -> IO SearchResult
-        go ident = runReaderT (either caseByPath2 caseByInfoGeneral ident) connMvar
+        go ident = runReaderT (either caseByPath caseByInfoGeneral ident) connMvar
 
 getLyricsFromWebP :: Pipe TrackInfo SearchResult IO a
 getLyricsFromWebP = PP.mapM caseByInfoWeb
@@ -60,16 +60,16 @@ caseByInfoLocal track =
 
 caseByInfoWeb :: (MonadIO m, Alternative m) => TrackInfo -> m SearchResult
 caseByInfoWeb track = GotLyric Web track <$>
-  (getLyricsFromWeb2 azLyricsInstance track
-   <|> getLyricsFromWeb2 musiXMatchInstance track)
+  (getLyricsFromWeb azLyricsInstance track
+   <|> getLyricsFromWeb musiXMatchInstance track)
 
-caseByPath2 :: TrackByPath -> ReaderT (MVar Connection) IO SearchResult
-caseByPath2 track =
+caseByPath :: TrackByPath -> ReaderT (MVar Connection) IO SearchResult
+caseByPath track =
   ((uncurry (GotLyric DB)) <$> getDBSong (tpPath track)) <|>
   pure (ErrorOn (NotOnDB track))
 
 saveOnDb :: MVar Connection -> Pipe SearchResult SearchResult IO a
 saveOnDb mconn = PP.chain go
   where go :: SearchResult -> IO ()
-        go (GotLyric Web info lyr) = runReaderT (insertDBLyrics2 info lyr) mconn
+        go (GotLyric Web info lyr) = runReaderT (insertDBLyrics info lyr) mconn
         go _otherwise = pure ()

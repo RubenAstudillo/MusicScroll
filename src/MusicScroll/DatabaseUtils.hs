@@ -36,8 +36,8 @@ getDBSong songUrl =
               let track = TrackInfo title artist songUrl
               in pure (track, coerce lyrics)
 
-insertDBLyrics2 :: TrackInfo -> Lyrics -> ReaderT (MVar Connection) IO ()
-insertDBLyrics2 (TrackInfo {..}) lyrics =
+insertDBLyrics :: TrackInfo -> Lyrics -> ReaderT (MVar Connection) IO ()
+insertDBLyrics (TrackInfo {..}) lyrics =
   ask >>= \mconn -> liftIO $
     do songHash <- fileHash tUrl
        let params = (songHash, tArtist, tTitle, coerce lyrics :: Text)

@@ -1,6 +1,6 @@
 {-# language OverloadedStrings, NamedFieldPuns, RecordWildCards #-}
 {-# language TypeApplications, DataKinds #-}
-module MusicScroll.Web (getLyricsFromWeb2) where
+module MusicScroll.Web (getLyricsFromWeb) where
 
 import Control.Exception (try)
 import Control.Applicative (Alternative(empty))
@@ -11,9 +11,9 @@ import Network.HTTP.Req
 import MusicScroll.TrackInfo (TrackInfo(..))
 import MusicScroll.Providers.Utils
 
-getLyricsFromWeb2 :: (MonadIO m, Alternative m) => Provider -> TrackInfo
+getLyricsFromWeb :: (MonadIO m, Alternative m) => Provider -> TrackInfo
                   -> m Lyrics
-getLyricsFromWeb2 (Provider {..}) track =
+getLyricsFromWeb (Provider {..}) track =
   do let songUrl = toUrl track
      resp <- liftIO $ try @HttpException (getPage songUrl)
      let notValid = either (const True)
