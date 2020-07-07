@@ -37,8 +37,7 @@ errorMsg ENoSong = "No song found, this is usually an intermediary state."
 errorMsg (NoLyricsOnWeb _) = "Lyrics provider didn't have that song."
 
 extractGuess :: ErrorCause -> Maybe (Text, Text)
-extractGuess (NoLyricsOnWeb (TrackInfo {..})) =
-  pure (tTitle, tArtist)
+extractGuess (NoLyricsOnWeb (TrackInfo {..})) = pure (tTitle, tArtist)
 extractGuess (NotOnDB (TrackByPath {..})) =
   let def = maybe mempty id in pure (def tpTitle, def tpArtist)
 extractGuess _ = Nothing

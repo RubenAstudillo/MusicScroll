@@ -13,7 +13,6 @@ import MusicScroll.UIContext (UIContext(..), dischargeOnUI, dischargeOnUISingle)
 import MusicScroll.TrackInfo (TrackIdentifier, cleanTrack)
 import MusicScroll.TrackSuplement
 
-
 data DBusSignal = Song TrackIdentifier | Error ErrorCause | NoInfo
 
 data AppState = AppState
