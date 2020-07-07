@@ -27,8 +27,8 @@ staticPipeline :: AppState -> IO ()
 staticPipeline (AppState ctx db (dbusTrack, dbusErr) _) =
   let songP = fromInput dbusTrack
       errP  = fromInput dbusErr
-      songPipe = songP >-> noRepeatedFilter >-> cleanTrack >->
-        getLyricsP db >-> saveOnDb db >-> dischargeOnUI ctx
+      songPipe = songP >-> noRepeatedSongs >-> cleanTrack >->
+        getLyricsFromAnywhere db >-> saveOnDb db >-> dischargeOnUI ctx
       errorPipe = errP >-> PP.map ErrorOn >-> dischargeOnUI ctx
   in withAsync (runEffect songPipe) $ \songA ->
        withAsync (runEffect errorPipe) $ \errorA ->
@@ -38,7 +38,7 @@ suplementPipeline :: TrackSuplement -> AppState -> IO ()
 suplementPipeline supl (AppState ctx db _ signal) =
   let justTracks a = case a of { Song track -> Just track ; _ -> Nothing }
       songP = signal >-> PP.mapFoldable justTracks
-      pipeline = songP >-> mergeSuplement supl >-> getLyricsFromWebP
+      pipeline = songP >-> mergeSuplement supl >-> getLyricsOnlyFromWeb
           >-> saveOnDb db >-> dischargeOnUISingle ctx
   in runEffect pipeline
 

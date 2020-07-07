@@ -1,5 +1,14 @@
 {-# language PatternSynonyms #-}
-module MusicScroll.LyricsPipeline where
+module MusicScroll.LyricsPipeline
+  ( SongByOrigin(..)
+  , SearchResult(..)
+  , ErrorCause(..)
+  , pattern OnlyMissingArtist
+  , noRepeatedSongs
+  , getLyricsFromAnywhere
+  , getLyricsOnlyFromWeb
+  , saveOnDb
+  ) where
 
 -- | Discriminate between getting the lyrics from SQLite or the web.
 
@@ -26,40 +35,30 @@ data ErrorCause = NotOnDB TrackByPath | NoLyricsOnWeb TrackInfo | ENoSong
 pattern OnlyMissingArtist :: ErrorCause
 pattern OnlyMissingArtist <- NotOnDB (TrackByPath {tpArtist = Nothing, tpTitle = Just _})
 
-noRepeatedFilter :: Functor m => Pipe TrackIdentifier TrackIdentifier m a
-noRepeatedFilter = do firstSong <- await
-                      yield firstSong
-                      loop firstSong
+noRepeatedSongs :: Functor m => Pipe TrackIdentifier TrackIdentifier m a
+noRepeatedSongs = do firstSong <- await
+                     yield firstSong
+                     loop firstSong
   where
     loop prevSong = do newSong <- await
                        if newSong /= prevSong
                          then yield newSong *> loop newSong
                          else loop prevSong
 
-getLyricsP :: MVar Connection -> Pipe TrackIdentifier SearchResult IO a
-getLyricsP connMvar = PP.mapM go
+getLyricsFromAnywhere :: MVar Connection -> Pipe TrackIdentifier SearchResult IO a
+getLyricsFromAnywhere connMvar = PP.mapM go
   where go :: TrackIdentifier -> IO SearchResult
         go ident = runReaderT (either caseByPath caseByInfoGeneral ident) connMvar
 
-getLyricsFromWebP :: Pipe TrackInfo SearchResult IO a
-getLyricsFromWebP = PP.mapM caseByInfoWeb
+getLyricsOnlyFromWeb :: Pipe TrackInfo SearchResult IO a
+getLyricsOnlyFromWeb = PP.mapM caseByInfoWeb
 
 caseByInfoGeneral :: TrackInfo -> ReaderT (MVar Connection) IO SearchResult
 caseByInfoGeneral track =
-  let local = caseByInfoLocal track
+  let local = GotLyric DB track <$> getDBLyrics (tUrl track)
       web = caseByInfoWeb track
       err = pure (ErrorOn (NoLyricsOnWeb track))
   in local <|> web <|> err
-
-caseByInfoWebP :: (MonadIO m, Alternative m) => TrackInfo -> m SearchResult
-caseByInfoWebP track =
-  let web = caseByInfoWeb track
-      err = pure (ErrorOn (NoLyricsOnWeb track))
-  in web <|> err
-
-caseByInfoLocal :: TrackInfo -> ReaderT (MVar Connection) IO SearchResult
-caseByInfoLocal track =
-  GotLyric DB track <$> getDBLyrics (tUrl track)
 
 caseByInfoWeb :: (MonadIO m, Alternative m) => TrackInfo -> m SearchResult
 caseByInfoWeb track = GotLyric Web track <$>
