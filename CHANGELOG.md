@@ -1,5 +1,9 @@
 # Revision history for music-scroll
 
+# 0.3.0.0
+
+* `Pipes` based code.
+
 # 0.2.3.3
 
 * On low bandwith conditions, don't keep downloading the previous song

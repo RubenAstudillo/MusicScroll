@@ -1,3 +1,4 @@
+{-# language PatternSynonyms #-}
 module MusicScroll.LyricsPipeline where
 
 -- | Discriminate between getting the lyrics from SQLite or the web.
@@ -13,9 +14,18 @@ import MusicScroll.DatabaseUtils
 import MusicScroll.TrackInfo
 import MusicScroll.TrackSuplement
 import MusicScroll.Web
+import MusicScroll.Providers.Utils (Lyrics(..))
 import MusicScroll.Providers.AZLyrics (azLyricsInstance)
 import MusicScroll.Providers.MusiXMatch (musiXMatchInstance)
-import MusicScroll.UIEvent
+
+data SongByOrigin = DB | Web
+data SearchResult = GotLyric SongByOrigin TrackInfo Lyrics
+                  | ErrorOn ErrorCause
+
+data ErrorCause = NotOnDB TrackByPath | NoLyricsOnWeb TrackInfo | ENoSong
+
+pattern OnlyMissingArtist :: ErrorCause
+pattern OnlyMissingArtist <- NotOnDB (TrackByPath {tpArtist = Nothing, tpTitle = Just _})
 
 noRepeatedFilter :: Functor m => Pipe TrackIdentifier TrackIdentifier m a
 noRepeatedFilter = do firstSong <- await

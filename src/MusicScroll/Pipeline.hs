@@ -9,7 +9,7 @@ import qualified Pipes.Prelude as PP
 import Data.Functor.Contravariant.Divisible
 
 import MusicScroll.LyricsPipeline
-import MusicScroll.UIEvent (SearchResult(ErrorOn), ErrorCause, AppContext(..), dischargeOnUI, dischargeOnUISingle)
+import MusicScroll.UIEvent (AppContext(..), dischargeOnUI, dischargeOnUISingle)
 import MusicScroll.TrackInfo (TrackIdentifier)
 import MusicScroll.TrackSuplement
 

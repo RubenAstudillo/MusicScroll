@@ -1,4 +1,4 @@
-{-# language OverloadedStrings, RecordWildCards, BangPatterns, PatternSynonyms #-}
+{-# language OverloadedStrings, RecordWildCards, BangPatterns #-}
 module MusicScroll.UIEvent where
 
 import           Control.Monad (unless, forever)
@@ -8,18 +8,9 @@ import           Data.Text as T
 import qualified GI.Gtk as Gtk
 import Pipes
 
-import           MusicScroll.TrackInfo (TrackInfo(..), TrackByPath(..))
-import           MusicScroll.Providers.Utils (Lyrics(..))
-
-
-data SongByOrigin = DB | Web
-data SearchResult = GotLyric SongByOrigin TrackInfo Lyrics
-                  | ErrorOn ErrorCause
-
-data ErrorCause = NotOnDB TrackByPath | NoLyricsOnWeb TrackInfo | ENoSong
-
-pattern OnlyMissingArtist :: ErrorCause
-pattern OnlyMissingArtist <- NotOnDB (TrackByPath {tpArtist = Nothing, tpTitle = Just _})
+import MusicScroll.TrackInfo (TrackInfo(..), TrackByPath(..))
+import MusicScroll.Providers.Utils (Lyrics(..))
+import MusicScroll.LyricsPipeline
 
 data AppContext = AppContext
   { mainWindow     :: Gtk.Window

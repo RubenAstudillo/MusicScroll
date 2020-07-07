@@ -24,17 +24,15 @@ getDBLyrics :: SongFilePath -> ReaderT (MVar Connection) IO Lyrics
 getDBLyrics songUrl = snd <$> getDBSong songUrl
 
 getDBSong :: SongFilePath -> ReaderT (MVar Connection) IO (TrackInfo, Lyrics)
-getDBSong songUrl =
-  do mconn <- ask
-     liftIO $
-       do songHash <- fileHash songUrl
-          songRaw <- withMVar mconn
-                       (\conn -> query conn sqlExtractSong (Only songHash))
-          case (songRaw :: [ (Text, Text, Text) ]) of
-            [] -> empty
-            (title, artist, lyrics):_ ->
-              let track = TrackInfo title artist songUrl
-              in pure (track, coerce lyrics)
+getDBSong songUrl = ask >>= \mconn -> liftIO $
+  do songHash <- fileHash songUrl
+     songRaw <- withMVar mconn
+                   (\conn -> query conn sqlExtractSong (Only songHash))
+     case (songRaw :: [ (Text, Text, Text) ]) of
+       [] -> empty
+       (title, artist, lyrics):_ ->
+         let track = TrackInfo title artist songUrl
+         in pure (track, coerce lyrics)
 
 insertDBLyrics :: TrackInfo -> Lyrics -> ReaderT (MVar Connection) IO ()
 insertDBLyrics (TrackInfo {..}) lyrics =

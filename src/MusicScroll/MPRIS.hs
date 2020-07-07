@@ -11,7 +11,7 @@ import Pipes.Concurrent
 import MusicScroll.TrackInfo
 import MusicScroll.DBusSignals
 import MusicScroll.ConnState
-import MusicScroll.UIEvent
+import MusicScroll.LyricsPipeline
 
 dbusThread :: Output TrackIdentifier -> Output ErrorCause -> IO a
 dbusThread trackout errorout = bracket connectSession disconnect
