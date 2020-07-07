@@ -38,7 +38,7 @@ suplementPipeline :: TrackSuplement -> AppState -> IO ()
 suplementPipeline supl (AppState ctx db _ signal) =
   let justTracks a = case a of { Song track -> Just track ; _ -> Nothing }
       songP = signal >-> PP.mapFoldable justTracks
-      pipeline = songP >-> mergeTrackSupl supl >-> getLyricsFromWebP
+      pipeline = songP >-> mergeSuplement supl >-> getLyricsFromWebP
           >-> saveOnDb db >-> dischargeOnUISingle ctx
   in runEffect pipeline
 

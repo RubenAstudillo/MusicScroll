@@ -12,7 +12,6 @@ import qualified Pipes.Prelude as PP
 
 import MusicScroll.DatabaseUtils
 import MusicScroll.TrackInfo
-import MusicScroll.TrackSuplement
 import MusicScroll.Web
 import MusicScroll.Providers.Utils (Lyrics(..))
 import MusicScroll.Providers.AZLyrics (azLyricsInstance)
@@ -36,9 +35,6 @@ noRepeatedFilter = do firstSong <- await
                        if newSong /= prevSong
                          then yield newSong *> loop newSong
                          else loop prevSong
-
-mergeTrackSupl :: Functor m => TrackSuplement -> Pipe TrackIdentifier TrackInfo m a
-mergeTrackSupl supl = PP.map (suplement supl)
 
 getLyricsP :: MVar Connection -> Pipe TrackIdentifier SearchResult IO a
 getLyricsP connMvar = PP.mapM go
