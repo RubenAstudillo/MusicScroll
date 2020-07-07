@@ -19,10 +19,10 @@ dbusThread trackout errorout = bracket connectSession disconnect
   where
     loop :: StateT ConnState IO a
     loop = forever $ tryGetInfo >>= \case
-        Left (NoMusicClient _) -> changeMusicClientP
+        Left (NoMusicClient _) -> changeMusicClient
         Left NoSong ->
           do runEffect $ yield ENoSong >-> toOutput errorout
-             waitForChangeP mediaPropChangeRule
+             waitForChange mediaPropChangeRule
         Right trackIdent ->
           do runEffect $ yield trackIdent >-> toOutput trackout
-             waitForChangeP mediaPropChangeRule
+             waitForChange mediaPropChangeRule
