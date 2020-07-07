@@ -37,9 +37,6 @@ noRepeatedFilter = do firstSong <- await
                          then yield newSong *> loop newSong
                          else loop prevSong
 
-cleanTrackP :: Functor m => Pipe TrackIdentifier TrackIdentifier m a
-cleanTrackP = PP.map cleanTrack
-
 mergeTrackSupl :: Functor m => TrackSuplement -> Pipe TrackIdentifier TrackInfo m a
 mergeTrackSupl supl = PP.map (suplement supl)
 

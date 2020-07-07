@@ -12,6 +12,7 @@ import           Data.Map.Strict (Map, lookup)
 import           Data.Text (Text)
 import qualified Data.Text as T
 import           Data.Char (isAlpha)
+import qualified Pipes.Prelude as PP (map)
 
 import           MusicScroll.DBusNames
 import           MusicScroll.ConnState
@@ -76,10 +77,13 @@ xesamArtistFix (Just title) _ = pure title
 xesamArtistFix Nothing (Just arr) | (title : _) <- arr = pure title
 xesamArtistFix _ _ = Nothing
 
-cleanTrack :: TrackIdentifier -> TrackIdentifier
-cleanTrack = bimap
-  (\byPath -> byPath { tpTitle = cleanTitle <$> (tpTitle byPath) })
-  (\track -> track { tTitle = cleanTitle (tTitle track) })
+cleanTrack :: Functor m => Pipe TrackIdentifier TrackIdentifier m a
+cleanTrack = PP.map go
+  where
+    go :: TrackIdentifier -> TrackIdentifier
+    go = bimap (\byPath -> let newTitle = cleanTitle <$> tpTitle byPath
+                           in byPath { tpTitle = newTitle })
+               (\track -> track { tTitle = cleanTitle (tTitle track) })
 
 -- | This functions does two main things:
 --     1. Remove format at the end, ie .mp3, .opus etc.

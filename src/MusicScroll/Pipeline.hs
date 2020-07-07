@@ -10,7 +10,7 @@ import Data.Functor.Contravariant.Divisible
 
 import MusicScroll.LyricsPipeline
 import MusicScroll.UIContext (UIContext(..), dischargeOnUI, dischargeOnUISingle)
-import MusicScroll.TrackInfo (TrackIdentifier)
+import MusicScroll.TrackInfo (TrackIdentifier, cleanTrack)
 import MusicScroll.TrackSuplement
 
 
@@ -27,7 +27,7 @@ staticPipeline :: AppState -> IO ()
 staticPipeline (AppState ctx db (dbusTrack, dbusErr) _) =
   let songP = fromInput dbusTrack
       errP  = fromInput dbusErr
-      songPipe = songP >-> noRepeatedFilter >-> cleanTrackP >->
+      songPipe = songP >-> noRepeatedFilter >-> cleanTrack >->
         getLyricsP db >-> saveOnDb db >-> dischargeOnUI ctx
       errorPipe = errP >-> PP.map ErrorOn >-> dischargeOnUI ctx
   in withAsync (runEffect songPipe) $ \songA ->
