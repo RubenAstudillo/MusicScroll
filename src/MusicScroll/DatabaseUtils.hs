@@ -1,5 +1,11 @@
 {-# language OverloadedStrings, TypeApplications, RecordWildCards #-}
-module MusicScroll.DatabaseUtils where
+module MusicScroll.DatabaseUtils
+  ( getDBLyrics
+  , getDBSong
+  , sqlDBCreate
+  , insertDBLyrics
+  , getDBPath
+  ) where
 
 import           Prelude hiding (null)
 import           Control.Applicative (Alternative(..))
