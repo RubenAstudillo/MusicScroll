@@ -1,4 +1,4 @@
-{-# language OverloadedStrings, NamedFieldPuns, FlexibleContexts #-}
+{-# language OverloadedStrings, NamedFieldPuns, FlexibleContexts, PatternSynonyms #-}
 module MusicScroll.TrackInfo where
 
 import           Prelude hiding (readFile, lookup)
@@ -29,7 +29,13 @@ data TrackByPath = TrackByPath
   { tpPath :: SongFilePath
   , tpTitle :: Maybe Text -- Best effort
   , tpArtist :: Maybe Text -- Best effort
-  } deriving (Eq, Show)
+  } deriving (Show)
+
+pattern OnlyMissingArtist :: TrackByPath
+pattern OnlyMissingArtist <- TrackByPath {tpArtist = Nothing, tpTitle = Just _}
+
+instance Eq TrackByPath where
+  t1 == t2 = tpPath t1 == tpPath t2
 
 type SongFilePath = FilePath
 type TrackIdentifier = Either TrackByPath TrackInfo

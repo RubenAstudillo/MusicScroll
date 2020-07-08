@@ -1,4 +1,7 @@
-module MusicScroll.TrackSuplement (TrackSuplement(..), mergeSuplement) where
+module MusicScroll.TrackSuplement
+  ( tsTitle, tsArtist, tsKeepArtist, TrackSuplement()
+  , trackSuplement, suplement, mergeSuplement
+  ) where
 
 import Data.Text
 import Pipes (Pipe)
@@ -7,9 +10,17 @@ import qualified Pipes.Prelude as PP (map)
 import MusicScroll.TrackInfo ( TrackInfo(..), TrackByPath(..)
                              , TrackIdentifier )
 
+
+-- | Invariant, always a valid artist text.
 data TrackSuplement = TrackSuplement
   { tsTitle :: Text
-  , tsArtist :: Text }
+  , tsArtist :: Text
+  , tsKeepArtist :: Bool }
+
+trackSuplement :: Text -> Text -> Bool -> Maybe TrackSuplement
+trackSuplement title artist keep
+  | strip artist == artist = pure (TrackSuplement title artist keep)
+  | otherwise = Nothing
 
 suplement :: TrackSuplement -> TrackIdentifier -> TrackInfo
 suplement supl = either byPath byInfo

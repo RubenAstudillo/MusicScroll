@@ -1,9 +1,7 @@
-{-# language PatternSynonyms #-}
 module MusicScroll.LyricsPipeline
   ( SongByOrigin(..)
   , SearchResult(..)
   , ErrorCause(..)
-  , pattern OnlyMissingArtist
   , noRepeatedSongs
   , getLyricsFromAnywhere
   , getLyricsOnlyFromWeb
@@ -32,9 +30,6 @@ data SearchResult = GotLyric SongByOrigin TrackInfo Lyrics
 
 data ErrorCause = NotOnDB TrackByPath | NoLyricsOnWeb TrackInfo | ENoSong
 
-pattern OnlyMissingArtist :: ErrorCause
-pattern OnlyMissingArtist <- NotOnDB (TrackByPath {tpArtist = Nothing, tpTitle = Just _})
-
 noRepeatedSongs :: Functor m => Pipe TrackIdentifier TrackIdentifier m a
 noRepeatedSongs = do firstSong <- await
                      yield firstSong
@@ -55,7 +50,7 @@ getLyricsOnlyFromWeb = PP.mapM caseByInfoWeb
 
 caseByInfoGeneral :: TrackInfo -> ReaderT (MVar Connection) IO SearchResult
 caseByInfoGeneral track =
-  let local = GotLyric DB track <$> getDBLyrics (tUrl track)
+  let local = uncurry (GotLyric DB) <$> getDBSong (tUrl track)
       web = caseByInfoWeb track
       err = pure (ErrorOn (NoLyricsOnWeb track))
   in local <|> web <|> err

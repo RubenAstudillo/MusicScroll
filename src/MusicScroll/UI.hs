@@ -4,6 +4,7 @@ module MusicScroll.UI (uiThread, getSuplement) where
 import           Control.Concurrent.STM (atomically)
 import           Control.Concurrent.STM.TBQueue (TBQueue, writeTBQueue)
 import           Control.Concurrent.STM.TMVar (TMVar, putTMVar)
+import           Control.Concurrent.STM.TVar (TVar, writeTVar)
 import           Data.GI.Gtk.Threading (setCurrentThreadAsGUIThread)
 import           Data.Maybe (fromJust)
 import           Data.Text (pack)
@@ -36,8 +37,8 @@ getGtkScene = do
              <*> getWidget Gtk.Button "suplementAcceptButton"
              <*> getWidget Gtk.CheckButton "keepArtistNameCheck"
 
-uiThread :: TMVar UIContext -> TBQueue UICallback -> IO ()
-uiThread ctxMVar outputTB = do
+uiThread :: TMVar UIContext -> TBQueue UICallback -> TVar (Maybe TrackSuplement) -> IO ()
+uiThread ctxMVar outputTB suplTVar = do
   setCurrentThreadAsGUIThread
   _ <- Gtk.init Nothing
   appCtx@(UIContext {..}) <- getGtkScene
@@ -45,23 +46,24 @@ uiThread ctxMVar outputTB = do
   Gtk.labelSetText titleLabel "MusicScroll"
   Gtk.widgetShowAll mainWindow
   _ <- Gtk.onButtonClicked suplementAcceptButton $
-       do supl <- getSuplement appCtx
-          let callback = suplementPipeline supl
-          atomically (writeTBQueue outputTB callback)
+         do getSuplement appCtx >>= \msupl -> do
+              case msupl of
+                Just supl -> do
+                  let callback = suplementPipeline supl
+                  atomically (writeTBQueue outputTB callback)
+                _ -> pure ()
+              atomically (writeTVar suplTVar msupl)
+  _ <- Gtk.afterWidgetFocusOutEvent artistSuplementEntry $
+          const (defUpdate appCtx *> pure True)
+  _ <- Gtk.afterToggleButtonToggled keepArtistNameCheck $ defUpdate appCtx
   _ <- Gtk.onWidgetDestroy mainWindow Gtk.mainQuit
   Gtk.main
+  where
+    defUpdate :: UIContext -> IO ()
+    defUpdate c = getSuplement c >>= atomically . writeTVar suplTVar
 
-getSuplement :: UIContext -> IO TrackSuplement
-getSuplement (UIContext {..}) = TrackSuplement <$>
-  Gtk.entryGetText titleSuplementEntry <*> Gtk.entryGetText artistSuplementEntry
-
--- TODO: Recover this functionality
--- tryDefaultSupplement
---   :: UIContext -> ErrorCause -> TBQueue TrackSuplement -> IO ()
--- tryDefaultSupplement ctx@(UIContext {..}) cause suplChan =
---   do shouldMaintainArtistSupl <- Gtk.getToggleButtonActive keepArtistNameCheck
---      validGuessArtist <- (/= mempty) <$> Gtk.entryGetText artistSuplementEntry
---      case cause of
---        OnlyMissingArtist | shouldMaintainArtistSupl, validGuessArtist ->
---                      sendSuplementalInfo ctx suplChan
---        _ -> return ()
+getSuplement :: UIContext -> IO (Maybe TrackSuplement)
+getSuplement (UIContext {..}) = trackSuplement <$>
+  Gtk.entryGetText titleSuplementEntry
+  <*> Gtk.entryGetText artistSuplementEntry
+  <*> Gtk.getToggleButtonActive keepArtistNameCheck
