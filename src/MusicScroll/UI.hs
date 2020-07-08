@@ -28,14 +28,14 @@ getGtkScene = do
         Gtk.builderGetObject builder id0
           >>= Gtk.castTo wid . fromJust >>= return . fromJust
   UIContext <$> getWidget Gtk.Window "mainWindow"
-             <*> getWidget Gtk.Label "titleLabel"
-             <*> getWidget Gtk.Label "artistLabel"
-             <*> getWidget Gtk.TextView "lyricsTextView"
-             <*> getWidget Gtk.Label "errorLabel"
-             <*> getWidget Gtk.Entry "titleSuplementEntry"
-             <*> getWidget Gtk.Entry "artistSuplementEntry"
-             <*> getWidget Gtk.Button "suplementAcceptButton"
-             <*> getWidget Gtk.CheckButton "keepArtistNameCheck"
+            <*> getWidget Gtk.Label "titleLabel"
+            <*> getWidget Gtk.Label "artistLabel"
+            <*> getWidget Gtk.TextView "lyricsTextView"
+            <*> getWidget Gtk.Label "errorLabel"
+            <*> getWidget Gtk.Entry "titleSuplementEntry"
+            <*> getWidget Gtk.Entry "artistSuplementEntry"
+            <*> getWidget Gtk.Button "suplementAcceptButton"
+            <*> getWidget Gtk.CheckButton "keepArtistNameCheck"
 
 uiThread :: TMVar UIContext -> TBQueue UICallback -> TVar (Maybe TrackSuplement) -> IO ()
 uiThread ctxMVar outputTB suplTVar = do
