@@ -1,14 +1,14 @@
+{-# language PatternSynonyms #-}
 module MusicScroll.TrackSuplement
-  ( tsTitle, tsArtist, tsKeepArtist, TrackSuplement()
-  , trackSuplement, suplement, mergeSuplement
-  ) where
+  ( tsTitle, tsArtist, tsKeepArtist, TrackSuplement() , trackSuplement
+  , suplement, mergeSuplement, suplementOnlyArtist) where
 
 import Data.Text
 import Pipes (Pipe)
 import qualified Pipes.Prelude as PP (map)
 
 import MusicScroll.TrackInfo ( TrackInfo(..), TrackByPath(..)
-                             , TrackIdentifier )
+                             , TrackIdentifier, pattern OnlyMissingArtist )
 
 
 -- | Invariant, always a valid artist text.
@@ -35,3 +35,11 @@ suplement supl = either byPath byInfo
 
 mergeSuplement :: Functor m => TrackSuplement -> Pipe TrackIdentifier TrackInfo m a
 mergeSuplement = PP.map . suplement
+
+suplementOnlyArtist :: TrackSuplement -> TrackIdentifier -> TrackIdentifier
+suplementOnlyArtist supl (Left byPath@OnlyMissingArtist) =
+  let trackinfo = TrackInfo { tTitle  = maybe mempty id (tpTitle byPath)
+                            , tArtist = tsArtist supl
+                            , tUrl    = tpPath byPath }
+  in Right trackinfo
+suplementOnlyArtist _ other = other

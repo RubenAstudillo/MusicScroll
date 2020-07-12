@@ -74,5 +74,5 @@ addSuplArtist :: TVar (Maybe TrackSuplement) -> Pipe TrackIdentifier TrackIdenti
 addSuplArtist svar = PP.mapM go
   where go :: TrackIdentifier -> IO TrackIdentifier
         go signal@(Left OnlyMissingArtist) = atomically (readTVar svar) >>=
-            pure . maybe signal (Right . flip suplement signal)
+            pure . maybe signal (flip suplementOnlyArtist signal)
         go other = pure other
