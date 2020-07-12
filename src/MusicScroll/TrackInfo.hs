@@ -43,14 +43,13 @@ pattern OnlyMissingArtist <- TrackByPath {tpArtist = Nothing, tpTitle = Just _}
 type SongFilePath = FilePath
 type TrackIdentifier = Either TrackByPath TrackInfo
 
-data TrackInfoError = NoMusicClient MethodError
-                    | NoSong
+data DBusError = NoMusicClient MethodError | NoSong
 
 -- An exception here means that either there is not a music player
 -- running or what it is running it's not a song. Either way we should
 -- wait for a change on the dbus connection to try again.
 tryGetInfo :: (MonadState ConnState m, MonadIO m) =>
-  m (Either TrackInfoError TrackIdentifier)
+  m (Either DBusError TrackIdentifier)
 tryGetInfo = do
   (ConnState client busName) <- get
   liftIO $ do
@@ -60,7 +59,7 @@ tryGetInfo = do
       }
     pure . join $ obtainTrackInfo <$> metadata
 
-obtainTrackInfo :: Map Text Variant -> Either TrackInfoError TrackIdentifier
+obtainTrackInfo :: Map Text Variant -> Either DBusError TrackIdentifier
 obtainTrackInfo metadata =
   let lookup' :: IsVariant a => Text -> Maybe a
       lookup' name = lookup name metadata >>= fromVariant
