@@ -23,7 +23,10 @@ data TrackInfo = TrackInfo
   { tTitle  :: Text
   , tArtist :: Text -- xesam:artist is weird
   , tUrl    :: SongFilePath
-  } deriving (Eq, Show) -- TODO: better eq instance
+  } deriving (Show)
+
+instance Eq TrackInfo where
+  t1 == t2 = tUrl t1 == tUrl t2
 
 data TrackByPath = TrackByPath
   { tpPath :: SongFilePath
@@ -31,11 +34,11 @@ data TrackByPath = TrackByPath
   , tpArtist :: Maybe Text -- Best effort
   } deriving (Show)
 
-pattern OnlyMissingArtist :: TrackByPath
-pattern OnlyMissingArtist <- TrackByPath {tpArtist = Nothing, tpTitle = Just _}
-
 instance Eq TrackByPath where
   t1 == t2 = tpPath t1 == tpPath t2
+
+pattern OnlyMissingArtist :: TrackByPath
+pattern OnlyMissingArtist <- TrackByPath {tpArtist = Nothing, tpTitle = Just _}
 
 type SongFilePath = FilePath
 type TrackIdentifier = Either TrackByPath TrackInfo
