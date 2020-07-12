@@ -38,7 +38,7 @@ noRepeatedSongs = do firstSong <- await
                      loop firstSong
   where
     loop prevSong = do newSong <- await
-                       if newSong /= prevSong
+                       if (TIWE newSong) /= (TIWE prevSong)
                          then yield newSong *> loop newSong
                          else loop prevSong
 

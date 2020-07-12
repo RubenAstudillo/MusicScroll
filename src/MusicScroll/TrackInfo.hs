@@ -37,11 +37,20 @@ data TrackByPath = TrackByPath
 instance Eq TrackByPath where
   t1 == t2 = tpPath t1 == tpPath t2
 
+type SongFilePath = FilePath
+type TrackIdentifier = Either TrackByPath TrackInfo
+
+newtype TrackIdentifierWithEq = TIWE TrackIdentifier
+
+instance Eq TrackIdentifierWithEq where
+  (TIWE t1) == (TIWE t2) = extractUrl t1 == extractUrl t2
+
+extractUrl :: TrackIdentifier -> SongFilePath
+extractUrl = either tpPath tUrl
+
 pattern OnlyMissingArtist :: TrackByPath
 pattern OnlyMissingArtist <- TrackByPath {tpArtist = Nothing, tpTitle = Just _}
 
-type SongFilePath = FilePath
-type TrackIdentifier = Either TrackByPath TrackInfo
 
 data DBusError = NoMusicClient MethodError | NoSong
 
