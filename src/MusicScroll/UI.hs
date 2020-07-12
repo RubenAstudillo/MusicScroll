@@ -37,7 +37,8 @@ getGtkScene = do
             <*> getWidget Gtk.Button "suplementAcceptButton"
             <*> getWidget Gtk.CheckButton "keepArtistNameCheck"
 
-uiThread :: TMVar UIContext -> TBQueue UICallback -> TVar (Maybe TrackSuplement) -> IO ()
+uiThread :: TMVar UIContext -> TBQueue UICallback
+         -> TVar (Maybe TrackSuplement) -> IO ()
 uiThread ctxMVar outputTB suplTVar = do
   setCurrentThreadAsGUIThread
   _ <- Gtk.init Nothing
