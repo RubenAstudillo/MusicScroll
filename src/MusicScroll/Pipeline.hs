@@ -17,6 +17,7 @@ import MusicScroll.TrackInfo (TrackIdentifier, cleanTrack,
 import MusicScroll.TrackSuplement
 
 data DBusSignal = Song TrackIdentifier | Error ErrorCause | NoInfo
+  deriving (Show)
 
 data AppState = AppState
   { apUI :: UIContext
@@ -44,6 +45,9 @@ suplementPipeline supl (AppState ctx db _ _ signal) =
       pipeline = songP >-> mergeSuplement supl >-> getLyricsOnlyFromWeb
           >-> saveOnDb db >-> dischargeOnUISingle ctx
   in runEffect pipeline
+
+debugPS :: Show a => String -> Pipe a a IO ()
+debugPS tag = PP.chain (\a -> putStr tag *> print a)
 
 -- | Use the `Output` Divisible instance to create a network. These are
 --   1) An output for songs.

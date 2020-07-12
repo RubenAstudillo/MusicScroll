@@ -24,11 +24,13 @@ import MusicScroll.Providers.Utils (Lyrics(..))
 import MusicScroll.Providers.AZLyrics (azLyricsInstance)
 import MusicScroll.Providers.MusiXMatch (musiXMatchInstance)
 
-data SongByOrigin = DB | Web
+data SongByOrigin = DB | Web deriving (Show)
 data SearchResult = GotLyric SongByOrigin TrackInfo Lyrics
                   | ErrorOn ErrorCause
+  deriving (Show)
 
 data ErrorCause = NotOnDB TrackByPath | NoLyricsOnWeb TrackInfo | ENoSong
+  deriving (Show)
 
 noRepeatedSongs :: Functor m => Pipe TrackIdentifier TrackIdentifier m a
 noRepeatedSongs = do firstSong <- await
