@@ -1,6 +1,7 @@
 {-# language PatternSynonyms #-}
 module MusicScroll.Pipeline where
 
+import Data.Foldable (traverse_)
 import Control.Concurrent.Async
 import Control.Concurrent.MVar
 import Control.Concurrent.STM.TVar (TVar)
@@ -29,14 +30,23 @@ data AppState = AppState
 
 staticPipeline :: AppState -> IO ()
 staticPipeline (AppState ctx db svar (dbusTrack, dbusErr) _) =
-  let songP = fromInput dbusTrack >-> addSuplArtist svar
+  let songP = fromInput dbusTrack >-> addSuplArtist svar >-> noRepeatedSongs
+              >-> cleanTrack
       errP  = fromInput dbusErr
-      songPipe = songP >-> noRepeatedSongs >-> cleanTrack >->
-        getLyricsFromAnywhere db >-> saveOnDb db >-> dischargeOnUI ctx
       errorPipe = errP >-> PP.map ErrorOn >-> dischargeOnUI ctx
-  in withAsync (runEffect songPipe) $ \songA ->
+  in withAsync (songPipe db ctx songP) $ \songA ->
        withAsync (runEffect errorPipe) $ \errorA ->
          void $ waitAnyCancel [ songA, errorA ]
+
+songPipe :: MVar Connection -> UIContext -> Producer TrackIdentifier IO () -> IO ()
+songPipe db ctx = PP.foldM go (pure Nothing) (traverse_ cancel)
+  where
+    go :: Maybe (Async ()) -> TrackIdentifier -> IO (Maybe (Async ()))
+    go asyncVar track =
+      do traverse_ cancel asyncVar
+         let network = yield track >-> getLyricsFromAnywhere db
+                         >-> saveOnDb db >-> dischargeOnUI ctx
+         Just <$> async (runEffect network)
 
 suplementPipeline :: TrackSuplement -> AppState -> IO ()
 suplementPipeline supl (AppState ctx db _ _ signal) =

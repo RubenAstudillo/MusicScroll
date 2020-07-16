@@ -25,17 +25,11 @@ data TrackInfo = TrackInfo
   , tUrl    :: SongFilePath
   } deriving (Show)
 
-instance Eq TrackInfo where
-  t1 == t2 = tUrl t1 == tUrl t2
-
 data TrackByPath = TrackByPath
   { tpPath :: SongFilePath
   , tpTitle :: Maybe Text -- Best effort
   , tpArtist :: Maybe Text -- Best effort
   } deriving (Show)
-
-instance Eq TrackByPath where
-  t1 == t2 = tpPath t1 == tpPath t2
 
 type SongFilePath = FilePath
 type TrackIdentifier = Either TrackByPath TrackInfo
