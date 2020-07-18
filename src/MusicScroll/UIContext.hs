@@ -21,6 +21,7 @@ data UIContext = UIContext
   , titleSuplementEntry   :: Gtk.Entry
   , artistSuplementEntry  :: Gtk.Entry
   , suplementAcceptButton :: Gtk.Button
+  , suplementUpdateButton :: Gtk.Button
   , keepArtistNameCheck   :: Gtk.CheckButton
   }
 

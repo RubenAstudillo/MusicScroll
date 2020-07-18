@@ -67,8 +67,8 @@ caseByPath track =
   ((uncurry (GotLyric DB)) <$> getDBSong (tpPath track)) <|>
   pure (ErrorOn (NotOnDB track))
 
-saveOnDb :: MVar Connection -> Pipe SearchResult SearchResult IO a
-saveOnDb mconn = PP.chain go
+saveOnDb :: MVar Connection -> InsertStategy -> Pipe SearchResult SearchResult IO a
+saveOnDb mconn strat = PP.chain go
   where go :: SearchResult -> IO ()
-        go (GotLyric Web info lyr) = runReaderT (insertDBLyrics info lyr) mconn
+        go (GotLyric Web info lyr) = runReaderT (strat info lyr) mconn
         go _otherwise = pure ()

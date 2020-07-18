@@ -15,6 +15,7 @@ import MusicScroll.LyricsPipeline
 import MusicScroll.UIContext (UIContext(..), dischargeOnUI, dischargeOnUISingle)
 import MusicScroll.TrackInfo (TrackIdentifier, cleanTrack,
                               pattern OnlyMissingArtist)
+import MusicScroll.DatabaseUtils (insertStrat, updateStrat)
 import MusicScroll.TrackSuplement
 
 data DBusSignal = Song TrackIdentifier | Error ErrorCause | NoInfo
@@ -45,7 +46,7 @@ songPipe db ctx = PP.foldM go (pure Nothing) (traverse_ cancel)
     go asyncVar track =
       do traverse_ cancel asyncVar
          let network = yield track >-> getLyricsFromAnywhere db
-                         >-> saveOnDb db >-> dischargeOnUI ctx
+                 >-> saveOnDb db insertStrat >-> dischargeOnUI ctx
          Just <$> async (runEffect network)
 
 suplementPipeline :: TrackSuplement -> AppState -> IO ()
@@ -53,7 +54,15 @@ suplementPipeline supl (AppState ctx db _ _ signal) =
   let justTracks a = case a of { Song track -> Just track ; _ -> Nothing }
       songP = signal >-> PP.mapFoldable justTracks
       pipeline = songP >-> mergeSuplement supl >-> getLyricsOnlyFromWeb
-          >-> saveOnDb db >-> dischargeOnUISingle ctx
+          >-> saveOnDb db insertStrat >-> dischargeOnUISingle ctx
+  in runEffect pipeline
+
+updatePipeline :: TrackSuplement -> AppState -> IO ()
+updatePipeline supl (AppState ctx db _ _ signal) =
+  let justTracks a = case a of { Song track -> Just track ; _ -> Nothing }
+      songP = signal >-> PP.mapFoldable justTracks
+      pipeline = songP >-> mergeSuplement supl >-> getLyricsOnlyFromWeb
+          >-> saveOnDb db updateStrat >-> dischargeOnUISingle ctx
   in runEffect pipeline
 
 debugPS :: Show a => String -> Pipe a a IO ()

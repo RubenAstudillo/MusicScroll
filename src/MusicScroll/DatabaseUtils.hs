@@ -3,7 +3,9 @@ module MusicScroll.DatabaseUtils
   ( getDBLyrics
   , getDBSong
   , sqlDBCreate
-  , insertDBLyrics
+  , InsertStategy
+  , insertStrat
+  , updateStrat
   , getDBPath
   ) where
 
@@ -40,19 +42,19 @@ getDBSong songUrl = ask >>= \mconn -> liftIO $
          let track = TrackInfo title artist songUrl
          in pure (track, coerce lyrics)
 
-insertDBLyrics :: TrackInfo -> Lyrics -> ReaderT (MVar Connection) IO ()
-insertDBLyrics (TrackInfo {..}) lyrics =
-  ask >>= \mconn -> liftIO $
-    do songHash <- fileHash tUrl
-       let params = (songHash, tArtist, tTitle, coerce lyrics :: Text)
-       withMVar mconn $ \conn -> execute conn sqlInsertSong params
+type InsertStategy = TrackInfo -> Lyrics -> ReaderT (MVar Connection) IO ()
 
+insertStrat :: InsertStategy
+insertStrat (TrackInfo {..}) lyrics = ask >>= \mconn -> liftIO $
+  do songHash <- fileHash tUrl
+     let params = (songHash, tArtist, tTitle, coerce lyrics :: Text)
+     withMVar mconn $ \conn -> execute conn sqlInsertSong params
 
-updateDBLyrics :: TrackInfo -> Lyrics -> ReaderT Connection IO ()
-updateDBLyrics (TrackInfo {..}) lyrics = ask >>= \conn -> liftIO $
+updateStrat :: InsertStategy
+updateStrat (TrackInfo {..}) lyrics = ask >>= \mconn -> liftIO $
   do songHash <- fileHash tUrl
      let params = (coerce lyrics :: Text, songHash)
-     execute conn sqlUpdateSong params
+     withMVar mconn $ \conn -> execute conn sqlUpdateSong params
 
 getDBPath :: IO FilePath
 getDBPath = do cacheDir <- getUserCacheDir "musicScroll"

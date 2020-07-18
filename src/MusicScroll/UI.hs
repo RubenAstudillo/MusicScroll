@@ -6,6 +6,7 @@ import           Control.Concurrent.STM.TBQueue (TBQueue, writeTBQueue)
 import           Control.Concurrent.STM.TMVar (TMVar, putTMVar)
 import           Control.Concurrent.STM.TVar (TVar, writeTVar)
 import           Data.GI.Gtk.Threading (setCurrentThreadAsGUIThread)
+import           Data.Foldable (traverse_)
 import           Data.Maybe (fromJust)
 import           Data.Text (pack)
 import qualified GI.Gtk as Gtk
@@ -35,6 +36,7 @@ getGtkScene = do
             <*> getWidget Gtk.Entry "titleSuplementEntry"
             <*> getWidget Gtk.Entry "artistSuplementEntry"
             <*> getWidget Gtk.Button "suplementAcceptButton"
+            <*> getWidget Gtk.Button "suplementUpdateButton"
             <*> getWidget Gtk.CheckButton "keepArtistNameCheck"
 
 uiThread :: TMVar UIContext -> TBQueue UICallback
@@ -47,13 +49,17 @@ uiThread ctxMVar outputTB suplTVar = do
   Gtk.labelSetText titleLabel "MusicScroll"
   Gtk.widgetShowAll mainWindow
   _ <- Gtk.onButtonClicked suplementAcceptButton $
-         do getSuplement appCtx >>= \msupl -> do
-              case msupl of
-                Just supl -> do
-                  let callback = suplementPipeline supl
-                  atomically (writeTBQueue outputTB callback)
-                _ -> pure ()
-              atomically (writeTVar suplTVar msupl)
+         getSuplement appCtx >>= \msupl -> do
+           case msupl of
+             Just supl -> do
+               let callback = suplementPipeline supl
+               atomically (writeTBQueue outputTB callback)
+             _ -> pure ()
+           atomically (writeTVar suplTVar msupl)
+  _ <- Gtk.onButtonClicked suplementUpdateButton $
+         getSuplement appCtx >>= traverse_ (\supl ->
+           let callback = updatePipeline supl
+           in atomically (writeTBQueue outputTB callback))
   _ <- Gtk.afterWidgetFocusOutEvent artistSuplementEntry $
           const (defUpdate appCtx *> pure True)
   _ <- Gtk.afterToggleButtonToggled keepArtistNameCheck $ defUpdate appCtx
