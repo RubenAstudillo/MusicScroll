@@ -11,7 +11,7 @@ let
       }:
       mkDerivation {
         pname = "musicScroll";
-        version = "0.3.0.0";
+        version = "0.3.1.0";
         src = ./.;
         isLibrary = true;
         isExecutable = true;

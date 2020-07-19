@@ -1,5 +1,10 @@
 # Revision history for music-scroll
 
+# 0.3.1.0
+
+* Add an update button to overwrite lyrics.
+* Create better url for the lyrics' providers.
+
 # 0.3.0.0
 
 * `Pipes` based code.
