@@ -27,9 +27,10 @@ toUrl' track =
   in base /: "lyrics" /: quotedArtist /: quotedSong
 
 normalize :: Text -> Text
-normalize = let noSpaces = replace " " ""
-                noApostrophes = replace "'" ""
-            in noApostrophes . noSpaces . toLower
+normalize =
+  let targets :: String
+      targets = " '_-"
+  in T.intercalate mempty . split (`elem` targets) . toLower
 
 pipeline :: Text -> Lyrics
 pipeline = parseTags >>> mapAccumL discriminate False >>> snd
