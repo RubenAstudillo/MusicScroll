@@ -10,7 +10,6 @@ import qualified Pipes.Prelude as PP (map)
 import MusicScroll.TrackInfo ( TrackInfo(..), TrackByPath(..)
                              , TrackIdentifier, pattern OnlyMissingArtist )
 
-
 -- | Invariant, always a valid artist text.
 data TrackSuplement = TrackSuplement
   { tsTitle :: Text

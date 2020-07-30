@@ -6,7 +6,7 @@ import           Data.GI.Gtk.Threading (postGUISync)
 import           Data.Maybe (isNothing)
 import           Data.Text as T
 import qualified GI.Gtk as Gtk
-import Pipes
+import           Pipes
 
 import MusicScroll.TrackInfo (TrackInfo(..), TrackByPath(..))
 import MusicScroll.Providers.Utils (Lyrics(..))
