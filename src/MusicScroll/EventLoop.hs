@@ -2,6 +2,7 @@ module MusicScroll.EventLoop where
 
 import Control.Concurrent.Async
 import Control.Concurrent.STM
+import Data.Foldable (traverse_)
 
 import MusicScroll.Pipeline
 
@@ -16,7 +17,7 @@ data EventLoopState = EventLoopState
 eventLoop :: EventLoopState -> IO a
 eventLoop st =
   do newCallback <- atomically . readTBQueue $ evUiCallbacks st
-     maybe (pure ()) cancel (evEphemeral st)
+     traverse_ cancel (evEphemeral st)
      newAsync <- async (newCallback (evAppState st))
      let st' = st { evEphemeral = Just newAsync }
      eventLoop st'
