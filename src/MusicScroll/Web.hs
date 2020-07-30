@@ -1,5 +1,4 @@
-{-# language OverloadedStrings, NamedFieldPuns, RecordWildCards #-}
-{-# language TypeApplications, DataKinds #-}
+{-# language RecordWildCards, TypeApplications, DataKinds #-}
 module MusicScroll.Web (getLyricsFromWeb) where
 
 import Control.Exception (try)
