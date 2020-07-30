@@ -25,6 +25,7 @@ import MusicScroll.Providers.AZLyrics (azLyricsInstance)
 import MusicScroll.Providers.MusiXMatch (musiXMatchInstance)
 
 data SongByOrigin = DB | Web deriving (Show)
+
 data SearchResult = GotLyric SongByOrigin TrackInfo Lyrics
                   | ErrorOn ErrorCause
   deriving (Show)
