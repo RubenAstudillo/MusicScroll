@@ -9,24 +9,24 @@ module MusicScroll.DatabaseUtils
   , getDBPath
   ) where
 
-import           Prelude hiding (null)
-import           Control.Applicative (Alternative(..))
-import           Control.Exception (evaluate)
-import           Control.Monad.Trans.Reader (ReaderT, ask)
-import           Control.Monad.IO.Class (MonadIO(..))
-import           Control.Concurrent.MVar
-import           Control.DeepSeq (rnf)
-import           Crypto.Hash (SHA1, hashUpdate, hashInit, hashFinalize)
-import           Data.ByteString (hGet, null)
-import           System.IO (withFile, IOMode(..))
-import           Data.Text (Text)
-import           Database.SQLite.Simple
-import           System.Environment.XDG.BaseDir (getUserCacheDir)
-import           Data.Coerce
-import           System.Directory (createDirectory)
+import Prelude hiding (null)
+import Control.Applicative (Alternative(..))
+import Control.Exception (evaluate)
+import Control.Monad.Trans.Reader (ReaderT, ask)
+import Control.Monad.IO.Class (MonadIO(..))
+import Control.Concurrent.MVar
+import Control.DeepSeq (rnf)
+import Crypto.Hash (SHA1, hashUpdate, hashInit, hashFinalize)
+import Data.ByteString (hGet, null)
+import System.IO (withFile, IOMode(..))
+import Data.Text (Text)
+import Database.SQLite.Simple
+import System.Environment.XDG.BaseDir (getUserCacheDir)
+import Data.Coerce
+import System.Directory (createDirectory)
 
-import           MusicScroll.TrackInfo (TrackInfo(..), SongFilePath)
-import           MusicScroll.Providers.Utils (Lyrics(..))
+import MusicScroll.TrackInfo (TrackInfo(..), SongFilePath)
+import MusicScroll.Providers.Utils (Lyrics(..))
 
 getDBLyrics :: SongFilePath -> ReaderT (MVar Connection) IO Lyrics
 getDBLyrics songUrl = snd <$> getDBSong songUrl
