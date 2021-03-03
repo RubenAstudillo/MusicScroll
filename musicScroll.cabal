@@ -23,6 +23,7 @@ extra-source-files:  CHANGELOG.md
                      shell.nix
 data-dir:            resources
 data-files:          app.glade
+                     azlyrics.html
 
 source-repository head
   type:               git
@@ -32,7 +33,7 @@ library
   default-language:    Haskell2010
   ghc-options:         -optl-fuse-ld=gold
   ld-options:          -fuse-ld=gold
-  hs-source-dirs:      src
+  hs-source-dirs:      src, tests
   build-depends:       base <4.15,
                        containers,
                        dbus,
@@ -56,7 +57,7 @@ library
                        pipes-concurrency,
                        contravariant
   exposed-modules:     MusicScroll.RealMain
-  other-modules:       MusicScroll.UI
+                       MusicScroll.UI
                        MusicScroll.MPRIS
                        MusicScroll.Web
                        MusicScroll.LyricsPipeline
@@ -72,14 +73,17 @@ library
                        MusicScroll.Providers.AZLyrics
                        MusicScroll.Providers.MusiXMatch
                        MusicScroll.Providers.Utils
-                       Paths_musicScroll
+  other-modules: Paths_musicScroll
 
--- test-suite playground
---     type:       exitcode-stdio-1.0
---     main-is:    test-foo.hs
---     -- NOTE: no constraints on 'foo-internal' as same-package
---     --       dependencies implicitly refer to the same package instance
---     build-depends: foo-internal, base
+test-suite song-parsing
+    type:       exitcode-stdio-1.0
+    main-is:    Main.hs
+    hs-source-dirs:      tests/song-parsing
+    default-language:    Haskell2010
+    other-modules:       Paths_musicScroll
+    -- NOTE: no constraints on 'foo-internal' as same-package
+    --       dependencies implicitly refer to the same package instance
+    build-depends: musicScroll, base, hspec, text
 
 executable music-scroll
   main-is:             Main.hs

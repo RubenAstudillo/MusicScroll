@@ -5,24 +5,26 @@ let
   inherit (nixpkgs) pkgs;
 
   f = { mkDerivation, async, base, bytestring, containers
-      , cryptonite, dbus, directory, gi-gtk, gi-gtk-hs, gtk3, mtl, req
+      , contravariant, cryptonite, dbus, deepseq, directory, gi-gtk
+      , gi-gtk-hs, gtk3, hspec, mtl, pipes, pipes-concurrency, req
       , sqlite-simple, stdenv, stm, tagsoup, text, transformers
-      , xdg-basedir, pipes, pipes-concurrency
+      , xdg-basedir
       }:
       mkDerivation {
         pname = "musicScroll";
-        version = "0.3.1.0";
+        version = "0.3.2.1";
         src = ./.;
         isLibrary = true;
         isExecutable = true;
         enableSeparateDataOutput = true;
         libraryHaskellDepends = [
-          async base bytestring containers cryptonite dbus directory gi-gtk
-          gi-gtk-hs mtl req sqlite-simple stm tagsoup text transformers
-          xdg-basedir pipes pipes-concurrency
+          async base bytestring containers contravariant cryptonite dbus
+          deepseq directory gi-gtk gi-gtk-hs mtl pipes pipes-concurrency req
+          sqlite-simple stm tagsoup text transformers xdg-basedir
         ];
         executableHaskellDepends = [ base ];
         executablePkgconfigDepends = [ gtk3 ];
+        testHaskellDepends = [ base hspec text ];
         homepage = "https://github.com/RubenAstudillo/MusicScroll";
         description = "Supply your tunes info without leaving your music player";
         license = stdenv.lib.licenses.gpl3;
