@@ -1,4 +1,5 @@
-{-# language DataKinds #-}
+{-# LANGUAGE DataKinds #-}
+
 module MusicScroll.Providers.Utils where
 
 import Data.Text (Text)
@@ -11,6 +12,6 @@ instance Show Lyrics where
   show _ = "Lyrics"
 
 data Provider = Provider
-  { toUrl :: TrackInfo -> Url 'Https
-  , extractLyricsFromPage :: Text -> Lyrics
+  { toUrl :: TrackInfo -> Url 'Https,
+    extractLyricsFromPage :: Text -> Lyrics
   }

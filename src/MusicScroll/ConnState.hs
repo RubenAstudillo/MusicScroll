@@ -5,8 +5,8 @@ import DBus.Client (Client)
 import MusicScroll.DBusNames
 
 data ConnState = ConnState
-  { cpClient        :: Client
-  , cpBusActive     :: BusName
+  { cpClient :: Client,
+    cpBusActive :: BusName
   }
 
 newConnState :: Client -> ConnState

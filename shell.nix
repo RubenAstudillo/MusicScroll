@@ -7,7 +7,7 @@ let
   f = { mkDerivation, async, base, bytestring, containers
       , cryptonite, dbus, directory, gi-gtk, gi-gtk-hs, gtk3, mtl, req
       , sqlite-simple, stdenv, stm, tagsoup, text, transformers
-      , xdg-basedir, pipes, pipes-concurrency
+      , xdg-basedir, pipes, pipes-concurrency, haskell-language-server
       }:
       mkDerivation {
         pname = "musicScroll";
@@ -19,7 +19,7 @@ let
         libraryHaskellDepends = [
           async base bytestring containers cryptonite dbus directory gi-gtk
           gi-gtk-hs mtl req sqlite-simple stm tagsoup text transformers
-          xdg-basedir pipes pipes-concurrency
+          xdg-basedir pipes pipes-concurrency haskell-language-server
         ];
         executableHaskellDepends = [ base ];
         executablePkgconfigDepends = [ gtk3 ];

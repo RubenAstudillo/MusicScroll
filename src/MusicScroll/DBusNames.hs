@@ -1,12 +1,13 @@
-{-# language OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings #-}
+
 module MusicScroll.DBusNames where
 
-import DBus (BusName, ObjectPath, InterfaceName)
+import DBus (BusName, InterfaceName, ObjectPath)
 
 smplayerBus, vlcBus, dbusBus :: BusName
 smplayerBus = "org.mpris.MediaPlayer2.smplayer"
-vlcBus      = "org.mpris.MediaPlayer2.vlc"
-dbusBus     = "org.freedesktop.DBus"
+vlcBus = "org.mpris.MediaPlayer2.vlc"
+dbusBus = "org.freedesktop.DBus"
 
 -- TODO: Add more!
 allBuses :: [BusName]

@@ -1,37 +1,42 @@
-{-# language OverloadedStrings, NamedFieldPuns, FlexibleContexts, PatternSynonyms #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PatternSynonyms #-}
+
 module MusicScroll.TrackInfo where
 
-import           Prelude hiding (readFile, lookup)
-import           Control.Applicative (Alternative(..))
-import           Control.Monad (join)
-import           Control.Monad.State.Class (MonadState(..))
-import           DBus
-import           DBus.Client
-import           Data.Bifunctor (first, bimap)
-import           Data.Map.Strict (Map, lookup)
-import           Data.Text (Text)
+import Control.Applicative (Alternative (..))
+import Control.Monad (join)
+import Control.Monad.State.Class (MonadState (..))
+import DBus
+import DBus.Client
+import Data.Bifunctor (bimap, first)
+import Data.Char (isAlpha)
+import Data.Map.Strict (Map, lookup)
+import Data.Text (Text)
 import qualified Data.Text as T
-import           Data.Char (isAlpha)
-import qualified Pipes.Prelude as PP (map)
-
-import           MusicScroll.DBusNames
-import           MusicScroll.ConnState
-
+import MusicScroll.ConnState
+import MusicScroll.DBusNames
 import Pipes
+import qualified Pipes.Prelude as PP (map)
+import Prelude hiding (lookup, readFile)
 
 data TrackInfo = TrackInfo
-  { tTitle  :: Text
-  , tArtist :: Text -- xesam:artist is weird
-  , tUrl    :: SongFilePath
-  } deriving (Show)
+  { tTitle :: Text,
+    tArtist :: Text, -- xesam:artist is weird
+    tUrl :: SongFilePath
+  }
+  deriving (Show)
 
 data TrackByPath = TrackByPath
-  { tpPath :: SongFilePath
-  , tpTitle :: Maybe Text -- Best effort
-  , tpArtist :: Maybe Text -- Best effort
-  } deriving (Show)
+  { tpPath :: SongFilePath,
+    tpTitle :: Maybe Text, -- Best effort
+    tpArtist :: Maybe Text -- Best effort
+  }
+  deriving (Show)
 
 type SongFilePath = FilePath
+
 type TrackIdentifier = Either TrackByPath TrackInfo
 
 newtype TrackIdentifierWithEq = TIWE TrackIdentifier
@@ -45,21 +50,24 @@ extractUrl = either tpPath tUrl
 pattern OnlyMissingArtist :: TrackByPath
 pattern OnlyMissingArtist <- TrackByPath {tpArtist = Nothing, tpTitle = Just _}
 
-
 data DBusError = NoMusicClient MethodError | NoSong
 
 -- An exception here means that either there is not a music player
 -- running or what it is running it's not a song. Either way we should
 -- wait for a change on the dbus connection to try again.
-tryGetInfo :: (MonadState ConnState m, MonadIO m) =>
+tryGetInfo ::
+  (MonadState ConnState m, MonadIO m) =>
   m (Either DBusError TrackIdentifier)
 tryGetInfo = do
   (ConnState client busName) <- get
   liftIO $ do
-    metadata <- (first NoMusicClient) <$> getPropertyValue client
-      (methodCall mediaObject mediaInterface "Metadata") {
-        methodCallDestination = pure busName
-      }
+    metadata <-
+      (first NoMusicClient)
+        <$> getPropertyValue
+          client
+          (methodCall mediaObject mediaInterface "Metadata")
+            { methodCallDestination = pure busName
+            }
     pure . join $ obtainTrackInfo <$> metadata
 
 obtainTrackInfo :: Map Text Variant -> Either DBusError TrackIdentifier
@@ -67,9 +75,9 @@ obtainTrackInfo metadata =
   let lookup' :: IsVariant a => Text -> Maybe a
       lookup' name = lookup name metadata >>= fromVariant
 
-      mTitle  = lookup' "xesam:title"
+      mTitle = lookup' "xesam:title"
       mArtist = xesamArtistFix (lookup' "xesam:artist") (lookup' "xesam:artist")
-      mUrl    = vlcFix <$> lookup' "xesam:url"
+      mUrl = vlcFix <$> lookup' "xesam:url"
 
       trackInfo :: Maybe TrackInfo
       trackInfo = TrackInfo <$> mTitle <*> mArtist <*> mUrl
@@ -78,8 +86,8 @@ obtainTrackInfo metadata =
       trackByPath = TrackByPath <$> mUrl <*> pure mTitle <*> pure mArtist
 
       trackIdent :: Maybe TrackIdentifier
-      trackIdent =  (Right <$> trackInfo) <|> (Left <$> trackByPath)
-  in maybe (Left NoSong) Right trackIdent
+      trackIdent = (Right <$> trackInfo) <|> (Left <$> trackByPath)
+   in maybe (Left NoSong) Right trackIdent
 
 -- xesam:artist by definition should return a `[Text]`, but in practice
 -- it returns a `Text`. This function makes it always return `Text`.
@@ -92,9 +100,13 @@ cleanTrack :: Functor m => Pipe TrackIdentifier TrackIdentifier m a
 cleanTrack = PP.map go
   where
     go :: TrackIdentifier -> TrackIdentifier
-    go = bimap (\byPath -> let newTitle = cleanTitle <$> tpTitle byPath
-                           in byPath { tpTitle = newTitle })
-               (\track -> track { tTitle = cleanTitle (tTitle track) })
+    go =
+      bimap
+        ( \byPath ->
+            let newTitle = cleanTitle <$> tpTitle byPath
+             in byPath {tpTitle = newTitle}
+        )
+        (\track -> track {tTitle = cleanTitle (tTitle track)})
 
 -- | This functions does two main things:
 --     1. Remove format at the end, ie .mp3, .opus etc.
@@ -104,7 +116,7 @@ cleanTitle :: Text -> Text
 cleanTitle title0 =
   let (title1, format) = first T.init $ T.breakOnEnd "." title0
       title2 = if elem format musicFormats then title1 else title0
-  in T.dropWhile (not . isAlpha) title2
+   in T.dropWhile (not . isAlpha) title2
 
 musicFormats :: [Text]
 musicFormats = ["mp3", "flac", "ogg", "wav", "acc", "opus", "webm"]

@@ -1,38 +1,40 @@
-{-# language OverloadedStrings, RecordWildCards, BangPatterns #-}
+{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
+
 module MusicScroll.UIContext where
 
-import           Control.Monad (unless, forever)
-import           Data.GI.Gtk.Threading (postGUISync)
-import           Data.Maybe (isNothing)
-import           Data.Text as T
+import Control.Monad (forever, unless)
+import Data.GI.Gtk.Threading (postGUISync)
+import Data.Maybe (isNothing)
+import Data.Text as T
 import qualified GI.Gtk as Gtk
-import           Pipes
-
-import MusicScroll.TrackInfo (TrackInfo(..), TrackByPath(..))
-import MusicScroll.Providers.Utils (Lyrics(..))
 import MusicScroll.LyricsPipeline
+import MusicScroll.Providers.Utils (Lyrics (..))
+import MusicScroll.TrackInfo (TrackByPath (..), TrackInfo (..))
+import Pipes
 
 data UIContext = UIContext
-  { mainWindow     :: Gtk.Window
-  , titleLabel     :: Gtk.Label
-  , artistLabel    :: Gtk.Label
-  , lyricsTextView :: Gtk.TextView
-  , errorLabel     :: Gtk.Label
-  , titleSuplementEntry   :: Gtk.Entry
-  , artistSuplementEntry  :: Gtk.Entry
-  , suplementAcceptButton :: Gtk.Button
-  , suplementUpdateButton :: Gtk.Button
-  , keepArtistNameCheck   :: Gtk.CheckButton
+  { mainWindow :: Gtk.Window,
+    titleLabel :: Gtk.Label,
+    artistLabel :: Gtk.Label,
+    lyricsTextView :: Gtk.TextView,
+    errorLabel :: Gtk.Label,
+    titleSuplementEntry :: Gtk.Entry,
+    artistSuplementEntry :: Gtk.Entry,
+    suplementAcceptButton :: Gtk.Button,
+    suplementUpdateButton :: Gtk.Button,
+    keepArtistNameCheck :: Gtk.CheckButton
   }
 
 errorMsg :: ErrorCause -> Text
 errorMsg (NotOnDB trackPath)
   | isNothing (tpArtist trackPath) =
-        "No lyrics found by hash on the song file, try to suplement the song's\
-        \ artist metadata to try to get it from the web."
+    "No lyrics found by hash on the song file, try to suplement the song's\
+    \ artist metadata to try to get it from the web."
   | isNothing (tpTitle trackPath) =
-        "No lyrics found by hash on the song file, try to suplement the song's\
-        \ title metadata to try to get it from the web."
+    "No lyrics found by hash on the song file, try to suplement the song's\
+    \ title metadata to try to get it from the web."
   | otherwise = "This case should not happen"
 errorMsg ENoSong = "No song found, this is usually an intermediary state."
 errorMsg (NoLyricsOnWeb _) = "Lyrics provider didn't have that song."
@@ -47,13 +49,13 @@ extractGuess _ = Nothing
 updateNewLyrics :: UIContext -> (TrackInfo, Lyrics) -> IO ()
 updateNewLyrics ctx@(UIContext {..}) (track, Lyrics singleLyrics) =
   let !bytesToUpdate = fromIntegral $ T.length singleLyrics
-  in postGUISync $ do
-    Gtk.labelSetText errorLabel mempty
-    Gtk.labelSetText titleLabel (tTitle track)
-    Gtk.labelSetText artistLabel (tArtist track)
-    lyricsBuffer <- Gtk.textViewGetBuffer lyricsTextView
-    Gtk.textBufferSetText lyricsBuffer singleLyrics bytesToUpdate
-    updateSuplementalGuess ctx (mempty, mempty)
+   in postGUISync $ do
+        Gtk.labelSetText errorLabel mempty
+        Gtk.labelSetText titleLabel (tTitle track)
+        Gtk.labelSetText artistLabel (tArtist track)
+        lyricsBuffer <- Gtk.textViewGetBuffer lyricsTextView
+        Gtk.textBufferSetText lyricsBuffer singleLyrics bytesToUpdate
+        updateSuplementalGuess ctx (mempty, mempty)
 
 dischargeOnUI :: UIContext -> Consumer SearchResult IO a
 dischargeOnUI ctx = forever (dischargeOnUISingle ctx)
@@ -67,16 +69,18 @@ dischargeOnUISingle ctx = do
 
 updateErrorCause :: UIContext -> ErrorCause -> IO ()
 updateErrorCause ctx@(UIContext {..}) cause = postGUISync $
-  do Gtk.labelSetText titleLabel "No Song available"
-     Gtk.labelSetText artistLabel mempty
-     lyricsBuffer <- Gtk.textViewGetBuffer lyricsTextView
-     Gtk.textBufferSetText lyricsBuffer mempty 0
-     Gtk.labelSetText errorLabel (errorMsg cause)
-     maybe (return ()) (updateSuplementalGuess ctx) (extractGuess cause)
+  do
+    Gtk.labelSetText titleLabel "No Song available"
+    Gtk.labelSetText artistLabel mempty
+    lyricsBuffer <- Gtk.textViewGetBuffer lyricsTextView
+    Gtk.textBufferSetText lyricsBuffer mempty 0
+    Gtk.labelSetText errorLabel (errorMsg cause)
+    maybe (return ()) (updateSuplementalGuess ctx) (extractGuess cause)
 
 updateSuplementalGuess :: UIContext -> (Text, Text) -> IO ()
 updateSuplementalGuess (UIContext {..}) (guessTitle, guessArtist) =
-  do Gtk.entrySetText titleSuplementEntry guessTitle
-     shouldMaintainArtistSupl <- Gtk.getToggleButtonActive keepArtistNameCheck
-     unless shouldMaintainArtistSupl $
-       Gtk.entrySetText artistSuplementEntry guessArtist
+  do
+    Gtk.entrySetText titleSuplementEntry guessTitle
+    shouldMaintainArtistSupl <- Gtk.getToggleButtonActive keepArtistNameCheck
+    unless shouldMaintainArtistSupl $
+      Gtk.entrySetText artistSuplementEntry guessArtist
