@@ -4,29 +4,7 @@ let
 
   inherit (nixpkgs) pkgs;
 
-  f = { mkDerivation, async, base, bytestring, containers
-      , cryptonite, dbus, directory, gi-gtk, gi-gtk-hs, gtk3, mtl, req
-      , sqlite-simple, stdenv, stm, tagsoup, text, transformers
-      , xdg-basedir, pipes, pipes-concurrency, haskell-language-server
-      }:
-      mkDerivation {
-        pname = "musicScroll";
-        version = "0.3.1.0";
-        src = ./.;
-        isLibrary = true;
-        isExecutable = true;
-        enableSeparateDataOutput = true;
-        libraryHaskellDepends = [
-          async base bytestring containers cryptonite dbus directory gi-gtk
-          gi-gtk-hs mtl req sqlite-simple stm tagsoup text transformers
-          xdg-basedir pipes pipes-concurrency haskell-language-server
-        ];
-        executableHaskellDepends = [ base ];
-        executablePkgconfigDepends = [ gtk3 ];
-        homepage = "https://github.com/RubenAstudillo/MusicScroll";
-        description = "Supply your tunes info without leaving your music player";
-        license = stdenv.lib.licenses.gpl3;
-      };
+  f = import ./default.nix ;
 
   haskellPackages = if compiler == "default"
                        then pkgs.haskellPackages
@@ -36,8 +14,18 @@ let
 
   variant = if doBenchmark then pkgs.haskell.lib.doBenchmark else pkgs.lib.id;
 
-  drv = variant (haskellPackages.callPackage f { gtk3 = nixpkgs.gtk3; });
+  drv = haskellPackages.callPackage f { inherit (pkgs) gtk3; };
+  buildInputsS = [
+    haskellPackages.cabal-install
+    haskellPackages.haskell-language-server
+    pkgs.gtk3
+    pkgs.gobject-introspection
+    pkgs.glib
+  ];
 
 in
+  haskellPackages.shellFor {
+    packages = p: [drv];
+    buildInputs = buildInputsS;
+  }
 
-  if pkgs.lib.inNixShell then drv.env else drv

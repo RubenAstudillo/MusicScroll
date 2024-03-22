@@ -5,7 +5,7 @@ module MusicScroll.Providers.AZLyrics (azLyricsInstance) where
 
 import Control.Category hiding (id, (.))
 import Data.Maybe (catMaybes)
-import Data.Text as T hiding (filter, map, mapAccumL, tail)
+import Data.Text as T hiding (filter, map, mapAccumL, tail, elem)
 import Data.Traversable (mapAccumL)
 import MusicScroll.Providers.Utils
 import MusicScroll.TrackInfo (TrackInfo (..))
